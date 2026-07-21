@@ -1,5 +1,7 @@
 /* WorkerCard 스타일 */
 .worker-card {
+  display: block;
+  width: 100%;
   background: var(--surface-color);
   border: 1px solid var(--border-color);
   border-left: 4px solid var(--border-strong);
@@ -7,6 +9,7 @@
   padding: var(--spacing-lg);
   box-shadow: var(--shadow-sm);
   cursor: pointer;
+  text-align: left;
   transition: box-shadow var(--transition-normal), transform var(--transition-normal), border-color var(--transition-normal);
 }
 
@@ -27,6 +30,7 @@
   margin: 0;
   font-size: 1.08rem;
   color: var(--dark-color);
+  overflow-wrap: anywhere;
 }
 
 .worker-id {
@@ -41,6 +45,10 @@
 }
 
 .worker-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
 }
 
@@ -54,6 +62,18 @@
   padding: 4px 12px;
   border-radius: 999px;
   font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.equipment-alert {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--danger-soft);
+  color: var(--danger-color);
+  font-size: 0.78rem;
   font-weight: 800;
 }
 
@@ -102,6 +122,17 @@
   padding: 6px 8px;
   background: var(--light-color);
   border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+
+.equipment-item.equipped {
+  color: var(--success-color);
+  background: var(--success-soft);
+}
+
+.equipment-item.missing {
+  color: var(--danger-color);
+  background: var(--danger-soft);
 }
 
 .worker-footer {

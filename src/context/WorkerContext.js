@@ -1,121 +1,125 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
+import { workerAPI, sensorAPI } from '../services/api';
 
-/**
- * WorkerContext - 작업자 데이터 및 상태 관리
- * 역할: 작업자 정보, 위치, 상태(정상/주의/위험) 관리
- */
-const WorkerContext = createContext();
+const WorkerContext = createContext(null);
+const statusFromApi = { NORMAL: 'normal', WARNING: 'warning', DANGER: 'danger', INACTIVE: 'off-duty' };
+const statusToApi = { normal: 'NORMAL', warning: 'WARNING', danger: 'DANGER', 'off-duty': 'INACTIVE' };
+
+const normalizeWorker = (worker, sensorData) => ({
+  ...worker,
+  workerId: String(worker.id),
+  phone: worker.phoneNumber,
+  rfid: worker.rfidTag,
+  status: statusFromApi[worker.status] || worker.status?.toLowerCase() || 'off-duty',
+  location: worker.currentLatitude != null && worker.currentLongitude != null
+    ? { lat: worker.currentLatitude, lng: worker.currentLongitude }
+    : null,
+  sensorData: sensorData ? {
+    ...sensorData,
+    heartRate: sensorData.bpm,
+    temperature: sensorData.bodyTemperature,
+  } : worker.sensorData,
+  lastUpdate: new Date(sensorData?.measuredAt || worker.updatedAt || worker.createdAt || Date.now()),
+});
+
+const toRequest = (data) => ({
+  name: data.name,
+  department: data.department,
+  phoneNumber: data.phoneNumber ?? data.phone,
+  rfidTag: data.rfidTag ?? data.rfid,
+  status: statusToApi[data.status] || data.status,
+  currentLatitude: data.currentLatitude ?? data.location?.lat,
+  currentLongitude: data.currentLongitude ?? data.location?.lng,
+});
 
 export const WorkerProvider = ({ children }) => {
   const [workers, setWorkers] = useState([]);
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [lastFetchedAt, setLastFetchedAt] = useState(null);
+  const fetched = useRef(false);
+  const inFlight = useRef(false);
 
-  // 작업자 목록 조회
   const fetchWorkers = useCallback(async () => {
-    setLoading(true);
-    try {
-      // TODO: API 호출 - 실제 서버 엔드포인트로 교체
-      const mockData = [
-        {
-          id: 1,
-          name: '김철수',
-          workerId: 'W001',
-          location: { lat: 37.4979, lng: 127.0276 },
-          status: 'normal', // normal, warning, danger
-          sensorData: {
-            temperature: 36.5,
-            heartRate: 72,
-            equipmentStatus: {
-              helmet: true,
-              safeSuit: true,
-              safeShoes: true,
-              belt: true,
-            },
-          },
-          lastUpdate: new Date(),
-        },
-        {
-          id: 2,
-          name: '이영희',
-          workerId: 'W002',
-          location: { lat: 37.4980, lng: 127.0277 },
-          status: 'warning',
-          sensorData: {
-            temperature: 37.2,
-            heartRate: 95,
-            equipmentStatus: {
-              helmet: true,
-              safeSuit: true,
-              safeShoes: false,
-              belt: true,
-            },
-          },
-          lastUpdate: new Date(),
-        },
-      ];
-      setWorkers(mockData);
+    if (inFlight.current) return;
+    inFlight.current = true;
+    fetched.current ? setRefreshing(true) : setLoading(true);
+    const result = await workerAPI.getAll();
+    if (result.success) {
+      setWorkers((result.data || []).map((worker) => normalizeWorker(worker)));
       setError(null);
-    } catch (err) {
-      setError('작업자 데이터 조회 실패');
-      console.error(err);
-    } finally {
-      setLoading(false);
+      setLastFetchedAt(new Date());
+      fetched.current = true;
+    } else {
+      setError(result.error || '작업자 정보를 불러오지 못했습니다.');
     }
+    setLoading(false);
+    setRefreshing(false);
+    inFlight.current = false;
+    return result;
   }, []);
 
-  // 특정 작업자 상세 조회
-  const getWorkerDetail = useCallback((workerId) => {
-    const worker = workers.find((w) => w.id === workerId);
-    setSelectedWorker(worker);
-    return worker;
+  const getWorkerDetail = useCallback(async (workerId) => {
+    const cached = workers.find((worker) => worker.id === workerId);
+    if (cached) setSelectedWorker(cached);
+    const [workerResult, sensorResult] = await Promise.all([
+      workerAPI.getById(workerId),
+      sensorAPI.getLatest(workerId),
+    ]);
+    if (workerResult.success) {
+      const worker = normalizeWorker(workerResult.data, sensorResult.success ? sensorResult.data : null);
+      setSelectedWorker(worker);
+      setWorkers((prev) => prev.map((item) => item.id === worker.id ? worker : item));
+      return worker;
+    }
+    return cached || null;
   }, [workers]);
 
-  // 작업자 상태 업데이트
+  const addWorker = useCallback(async (data) => {
+    const result = await workerAPI.create(toRequest(data));
+    if (result.success) setWorkers((prev) => [...prev, normalizeWorker(result.data)]);
+    return result;
+  }, []);
+
+  const updateWorker = useCallback(async (workerId, data) => {
+    const result = await workerAPI.update(workerId, toRequest(data));
+    if (result.success) {
+      const worker = normalizeWorker(result.data);
+      setWorkers((prev) => prev.map((item) => item.id === workerId ? worker : item));
+      setSelectedWorker((prev) => prev?.id === workerId ? worker : prev);
+    }
+    return result;
+  }, []);
+
+  const deleteWorker = useCallback(async (workerId) => {
+    const result = await workerAPI.delete(workerId);
+    if (result.success) {
+      setWorkers((prev) => prev.filter((worker) => worker.id !== workerId));
+      setSelectedWorker((prev) => prev?.id === workerId ? null : prev);
+    }
+    return result;
+  }, []);
+
   const updateWorkerStatus = useCallback((workerId, status) => {
-    setWorkers((prevWorkers) =>
-      prevWorkers.map((worker) =>
-        worker.id === workerId ? { ...worker, status } : worker
-      )
-    );
+    setWorkers((prev) => prev.map((worker) => worker.id === workerId ? { ...worker, status } : worker));
   }, []);
-
-  // 센서 데이터 업데이트 (실시간)
   const updateSensorData = useCallback((workerId, sensorData) => {
-    setWorkers((prevWorkers) =>
-      prevWorkers.map((worker) =>
-        worker.id === workerId
-          ? {
-              ...worker,
-              sensorData,
-              lastUpdate: new Date(),
-            }
-          : worker
-      )
-    );
+    setWorkers((prev) => prev.map((worker) => worker.id === workerId
+      ? normalizeWorker(worker, sensorData)
+      : worker));
   }, []);
 
-  const value = {
-    workers,
-    selectedWorker,
-    loading,
-    error,
-    fetchWorkers,
-    getWorkerDetail,
-    updateWorkerStatus,
-    updateSensorData,
-  };
-
-  return (
-    <WorkerContext.Provider value={value}>{children}</WorkerContext.Provider>
-  );
+  return <WorkerContext.Provider value={{
+    workers, selectedWorker, loading, refreshing, error, lastFetchedAt,
+    fetchWorkers, getWorkerDetail, addWorker, updateWorker, deleteWorker,
+    updateWorkerStatus, updateSensorData,
+  }}>{children}</WorkerContext.Provider>;
 };
 
 export const useWorker = () => {
   const context = useContext(WorkerContext);
-  if (!context) {
-    throw new Error('useWorker must be used within WorkerProvider');
-  }
+  if (!context) throw new Error('useWorker must be used within WorkerProvider');
   return context;
 };

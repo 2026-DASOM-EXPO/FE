@@ -1,10 +1,10 @@
-.equipment-page {
+.drone-management-page {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
 }
 
-.equipment-hero {
+.drone-management-hero {
   display: flex;
   align-items: stretch;
   justify-content: space-between;
@@ -13,137 +13,137 @@
   border: 1px solid rgba(148, 163, 184, 0.24);
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(37, 99, 235, 0.09), rgba(22, 163, 74, 0.09)),
+    linear-gradient(135deg, rgba(8, 145, 178, 0.1), rgba(37, 99, 235, 0.08)),
     var(--surface-color);
   box-shadow: var(--shadow-sm);
 }
 
-.equipment-hero span,
-.equipment-server-card span,
-.equipment-summary-grid span,
-.equipment-detail__header span:first-child,
-.equipment-info-grid span,
-.equipment-code-panel span {
+.drone-management-hero span,
+.drone-management-server span,
+.drone-management-summary span,
+.drone-management-detail__header span:first-child,
+.drone-management-info span,
+.drone-management-code span {
   display: block;
   color: var(--muted-color);
   font-size: 0.82rem;
   font-weight: 800;
 }
 
-.equipment-hero > div:first-child > span {
+.drone-management-hero > div:first-child > span {
   margin-bottom: var(--spacing-sm);
-  color: var(--primary-color);
+  color: var(--info-color);
   font-weight: 900;
   text-transform: uppercase;
 }
 
-.equipment-hero h1 {
+.drone-management-hero h1 {
   margin: 0 0 var(--spacing-sm) 0;
   font-size: clamp(1.9rem, 2.2vw, 2.45rem);
 }
 
-.equipment-hero p {
+.drone-management-hero p {
   margin: 0;
   color: var(--muted-color);
 }
 
-.equipment-server-card,
-.equipment-summary-grid > div,
-.equipment-action-card,
-.equipment-detail,
-.equipment-log-section {
+.drone-management-server,
+.drone-management-summary > div,
+.drone-management-action,
+.drone-management-detail,
+.drone-management-log {
   border: 1px solid var(--border-color);
   border-radius: 8px;
   background: var(--surface-color);
   box-shadow: var(--shadow-sm);
 }
 
-.equipment-server-card {
+.drone-management-server {
   display: grid;
   gap: var(--spacing-sm);
   min-width: 260px;
   padding: var(--spacing-md);
 }
 
-.equipment-server-card strong {
+.drone-management-server strong {
   font-size: 1.05rem;
 }
 
-.equipment-summary-grid {
+.drone-management-summary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--spacing-md);
 }
 
-.equipment-summary-grid > div {
+.drone-management-summary > div {
   padding: var(--spacing-md);
 }
 
-.equipment-summary-grid strong {
+.drone-management-summary strong {
   display: block;
   margin-top: var(--spacing-xs);
   font-size: 1.4rem;
 }
 
-.equipment-workspace {
+.drone-management-workspace {
   display: grid;
   grid-template-columns: minmax(360px, 0.92fr) minmax(520px, 1.08fr);
   gap: var(--spacing-lg);
   align-items: start;
 }
 
-.equipment-action-list {
+.drone-management-actions {
   display: grid;
   gap: var(--spacing-md);
 }
 
-.equipment-action-card {
+.drone-management-action {
   display: block;
   width: 100%;
   padding: var(--spacing-md);
   text-align: left;
 }
 
-.equipment-action-card:hover,
-.equipment-action-card.is-active {
-  border-color: var(--primary-color);
-  background: var(--primary-soft);
+.drone-management-action:hover,
+.drone-management-action.is-active {
+  border-color: var(--info-color);
+  background: var(--info-soft);
   transform: none;
 }
 
-.equipment-action-card > div:first-child,
-.equipment-detail__header,
-.equipment-log-heading,
-.equipment-log-row {
+.drone-management-action > div:first-child,
+.drone-management-detail__header,
+.drone-management-log__heading,
+.drone-management-log-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-md);
 }
 
-.equipment-action-card > div:first-child span {
+.drone-management-action > div:first-child span {
   flex: 0 0 auto;
   padding: 4px 9px;
   border-radius: 999px;
-  color: var(--primary-color);
-  background: var(--primary-soft);
+  color: var(--info-color);
+  background: var(--info-soft);
   font-size: 0.78rem;
   font-weight: 900;
 }
 
-.equipment-action-card p {
+.drone-management-action p {
   margin: var(--spacing-sm) 0;
   color: var(--muted-color);
   font-size: 0.94rem;
 }
 
-.equipment-db-tags {
+.drone-management-db-tags {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-sm);
 }
 
-.equipment-db-tags em {
+.drone-management-db-tags em {
   padding: 4px 8px;
   border-radius: 8px;
   color: var(--danger-color);
@@ -153,29 +153,29 @@
   font-style: normal;
 }
 
-.equipment-detail,
-.equipment-log-section {
+.drone-management-detail,
+.drone-management-log {
   padding: var(--spacing-lg);
 }
 
-.equipment-detail__header {
+.drone-management-detail__header {
   align-items: flex-start;
   margin-bottom: var(--spacing-md);
 }
 
-.equipment-detail__header h2 {
+.drone-management-detail__header h2 {
   margin: var(--spacing-xs) 0;
   font-size: 1.3rem;
 }
 
-.equipment-detail__header p {
+.drone-management-detail__header p {
   margin: 0;
   color: var(--muted-color);
 }
 
-.equipment-method,
-.equipment-status,
-.equipment-log-row em {
+.drone-management-method,
+.drone-management-status,
+.drone-management-log-row em {
   flex: 0 0 auto;
   padding: 5px 10px;
   border-radius: 999px;
@@ -184,31 +184,31 @@
   font-weight: 900;
 }
 
-.equipment-method--get {
+.drone-management-method--get {
   color: var(--info-color);
   background: var(--info-soft);
 }
 
-.equipment-method--post,
-.equipment-method--patch {
+.drone-management-method--post,
+.drone-management-method--patch {
   color: var(--success-color);
   background: var(--success-soft);
 }
 
-.equipment-method--delete {
+.drone-management-method--delete {
   color: var(--danger-color);
   background: var(--danger-soft);
 }
 
-.equipment-list-panel {
+.drone-management-list {
   display: grid;
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
 }
 
-.equipment-row {
+.drone-management-row {
   display: grid;
-  grid-template-columns: 1.2fr auto auto;
+  grid-template-columns: 1.2fr 1fr auto;
   gap: var(--spacing-md);
   align-items: center;
   min-height: 58px;
@@ -219,71 +219,71 @@
   text-align: left;
 }
 
-.equipment-row:hover,
-.equipment-row.is-active {
-  border-color: var(--primary-color);
-  background: var(--primary-soft);
+.drone-management-row:hover,
+.drone-management-row.is-active {
+  border-color: var(--info-color);
+  background: var(--info-soft);
   transform: none;
 }
 
-.equipment-row strong,
-.equipment-row span {
+.drone-management-row strong,
+.drone-management-row span {
   display: block;
 }
 
-.equipment-row div span {
+.drone-management-row div span {
   margin-top: 3px;
   color: var(--muted-color);
   font-size: 0.82rem;
 }
 
-.equipment-status--info {
-  color: var(--info-color);
-  background: var(--info-soft);
-}
-
-.equipment-status--success,
-.equipment-log-row em {
+.drone-management-status--success,
+.drone-management-log-row em {
   color: var(--success-color);
   background: var(--success-soft);
 }
 
-.equipment-status--warning {
+.drone-management-status--info {
+  color: var(--info-color);
+  background: var(--info-soft);
+}
+
+.drone-management-status--warning {
   color: var(--warning-color);
   background: var(--warning-soft);
 }
 
-.equipment-status--danger {
+.drone-management-status--danger {
   color: var(--danger-color);
   background: var(--danger-soft);
 }
 
-.equipment-info-grid {
+.drone-management-info {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
 }
 
-.equipment-info-grid div {
+.drone-management-info div {
   padding: var(--spacing-md);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   background: var(--light-color);
 }
 
-.equipment-info-grid strong {
+.drone-management-info strong {
   display: block;
   margin-top: var(--spacing-xs);
 }
 
-.equipment-code-panel {
+.drone-management-code {
   display: grid;
   gap: var(--spacing-sm);
 }
 
-.equipment-code-panel code,
-.equipment-code-panel pre {
+.drone-management-code code,
+.drone-management-code pre {
   display: block;
   overflow: auto;
   border: 1px solid var(--border-color);
@@ -294,45 +294,45 @@
   font-size: 0.85rem;
 }
 
-.equipment-code-panel code {
+.drone-management-code code {
   padding: var(--spacing-sm) var(--spacing-md);
 }
 
-.equipment-code-panel pre {
+.drone-management-code pre {
   min-height: 150px;
   margin: 0;
   padding: var(--spacing-md);
 }
 
-.equipment-log-heading {
+.drone-management-log__heading {
   margin-bottom: var(--spacing-md);
 }
 
-.equipment-log-heading h2 {
+.drone-management-log__heading h2 {
   margin: 0;
   font-size: 1.1rem;
 }
 
-.equipment-log-heading span,
-.equipment-log-row span,
-.equipment-log-row time {
+.drone-management-log__heading span,
+.drone-management-log-row span,
+.drone-management-log-row time {
   color: var(--muted-color);
   font-size: 0.9rem;
 }
 
-.equipment-log-list {
+.drone-management-log-list {
   display: grid;
   gap: var(--spacing-sm);
 }
 
-.equipment-log-row {
+.drone-management-log-row {
   min-height: 46px;
   padding: var(--spacing-sm) var(--spacing-md);
   border: 1px solid var(--border-color);
   border-radius: 8px;
 }
 
-.equipment-empty {
+.drone-management-empty {
   padding: var(--spacing-lg);
   border: 1px dashed var(--border-strong);
   border-radius: 8px;
@@ -341,33 +341,33 @@
 }
 
 @media (max-width: 1180px) {
-  .equipment-hero {
+  .drone-management-hero {
     flex-direction: column;
   }
 
-  .equipment-workspace,
-  .equipment-summary-grid {
+  .drone-management-workspace,
+  .drone-management-summary {
     grid-template-columns: 1fr;
   }
 
-  .equipment-server-card {
+  .drone-management-server {
     min-width: 0;
   }
 }
 
 @media (max-width: 768px) {
-  .equipment-hero {
+  .drone-management-hero {
     padding: var(--spacing-lg);
   }
 
-  .equipment-detail__header,
-  .equipment-log-row {
+  .drone-management-detail__header,
+  .drone-management-log-row {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .equipment-row,
-  .equipment-info-grid {
+  .drone-management-row,
+  .drone-management-info {
     grid-template-columns: 1fr;
   }
 }

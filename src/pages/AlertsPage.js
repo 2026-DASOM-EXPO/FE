@@ -4,8 +4,8 @@ import AlertNotification from '../components/dashboard/AlertNotification';
 import './AlertsPage.css';
 
 /**
- * Alerts 페이지
- * 모든 알림 확인 및 관리
+ * AlertsPage 컴포넌트
+ * 모든 알림의 긴급도, 읽음 상태, 삭제/읽음 처리 액션을 관리합니다.
  */
 const AlertsPage = () => {
   const {
@@ -17,6 +17,7 @@ const AlertsPage = () => {
     getEmergencyAlerts,
   } = useAlert();
 
+  // 긴급 알림은 요약 카드에서 별도로 보여 운영자가 대응 우선순위를 확인하게 합니다.
   const emergencyAlerts = getEmergencyAlerts();
 
   return (
@@ -42,7 +43,7 @@ const AlertsPage = () => {
       {/* 일괄 작업 버튼 */}
       {unreadCount > 0 && (
         <div className="action-buttons">
-          <button className="btn-primary" onClick={markAllAsRead}>
+          <button className="btn-primary" type="button" onClick={markAllAsRead}>
             모두 읽음 처리
           </button>
         </div>
