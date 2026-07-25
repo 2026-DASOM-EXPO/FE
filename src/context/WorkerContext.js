@@ -1,11 +1,11 @@
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
-import { workerAPI, sensorAPI } from '../services/api';
+import { workerAPI, sensorAPI, equipmentAPI } from '../services/api';
 
 const WorkerContext = createContext(null);
 const statusFromApi = { NORMAL: 'normal', WARNING: 'warning', DANGER: 'danger', INACTIVE: 'off-duty' };
 const statusToApi = { normal: 'NORMAL', warning: 'WARNING', danger: 'DANGER', 'off-duty': 'INACTIVE' };
 
-const normalizeWorker = (worker, sensorData) => ({
+const normalizeWorker = (worker, sensorData, equipmentStatus) => ({
   ...worker,
   workerId: String(worker.id),
   phone: worker.phoneNumber,
@@ -14,11 +14,13 @@ const normalizeWorker = (worker, sensorData) => ({
   location: worker.currentLatitude != null && worker.currentLongitude != null
     ? { lat: worker.currentLatitude, lng: worker.currentLongitude }
     : null,
-  sensorData: sensorData ? {
-    ...sensorData,
-    heartRate: sensorData.bpm,
-    temperature: sensorData.bodyTemperature,
-  } : worker.sensorData,
+  sensorData: {
+    ...(worker.sensorData || {}),
+    ...(sensorData || {}),
+    heartRate: sensorData?.bpm ?? worker.sensorData?.heartRate,
+    temperature: sensorData?.bodyTemperature ?? worker.sensorData?.temperature,
+    equipmentStatus: sensorData?.equipmentStatus ?? equipmentStatus ?? worker.sensorData?.equipmentStatus,
+  },
   lastUpdate: new Date(sensorData?.measuredAt || worker.updatedAt || worker.createdAt || Date.now()),
 });
 
@@ -46,9 +48,32 @@ export const WorkerProvider = ({ children }) => {
     if (inFlight.current) return;
     inFlight.current = true;
     fetched.current ? setRefreshing(true) : setLoading(true);
-    const result = await workerAPI.getAll();
+    const [result, equipmentResult] = await Promise.all([
+      workerAPI.getAll(),
+      equipmentAPI.getAll(),
+    ]);
     if (result.success) {
-      setWorkers((result.data || []).map((worker) => normalizeWorker(worker)));
+      const equipmentByWorker = (equipmentResult.success ? equipmentResult.data : []).reduce((acc, item) => {
+        const workerId = item.worker?.id;
+        if (!workerId) return acc;
+        const key = { HELMET: 'helmet', VEST: 'safeSuit', SHOES: 'safeShoes' }[item.type];
+        if (!key) return acc;
+        acc[workerId] = {
+          helmet: false,
+          safeSuit: false,
+          safeShoes: false,
+          ...(acc[workerId] || {}),
+          [key]: item.wearStatus === 'WORN',
+        };
+        return acc;
+      }, {});
+      setWorkers((result.data || []).map((worker) =>
+        normalizeWorker(worker, null, equipmentByWorker[worker.id] || {
+          helmet: false,
+          safeSuit: false,
+          safeShoes: false,
+        })
+      ));
       setError(null);
       setLastFetchedAt(new Date());
       fetched.current = true;
