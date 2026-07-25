@@ -30,11 +30,11 @@ export const assessBiometricRisk = (heartRate, temperature) => {
 
 /**
  * 안전장비 착용 상태 확인
- * @param {object} equipmentStatus - { helmet, safeSuit, safeShoes, belt }
+ * @param {object} equipmentStatus - { helmet, safeSuit, safeShoes }
  * @returns {object} { allEquipped: boolean, missingEquipment: array }
  */
 export const checkEquipmentCompliance = (equipmentStatus) => {
-  const requiredEquipment = ['helmet', 'safeSuit', 'safeShoes', 'belt'];
+  const requiredEquipment = ['helmet', 'safeSuit', 'safeShoes'];
   const missingEquipment = requiredEquipment.filter(
     (eq) => !equipmentStatus[eq]
   );

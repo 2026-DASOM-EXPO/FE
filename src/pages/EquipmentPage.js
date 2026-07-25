@@ -3,7 +3,7 @@ import { useWorker } from '../context/WorkerContext';
 import { equipmentAPI } from '../services/api';
 import './EquipmentPage.css';
 
-const typeLabel = { HELMET: '안전모', BELT: '안전벨트', SHOES: '안전화', SENSOR_DEVICE: '센서 장치', SOS_BUTTON: 'SOS 버튼', GPS_MODULE: 'GPS 모듈' };
+const typeLabel = { HELMET: '안전모', VEST: '안전조끼', BELT: '안전벨트', SHOES: '안전화', SENSOR_DEVICE: '센서 장치', SOS_BUTTON: 'SOS 버튼', GPS_MODULE: 'GPS 모듈' };
 const statusLabel = { AVAILABLE: '사용 가능', ASSIGNED: '배정됨', LOST: '분실', BROKEN: '고장', DISCARDED: '폐기' };
 const wearLabel = { WORN: '착용', NOT_WORN: '미착용', UNKNOWN: '미확인' };
 const statusTone = { AVAILABLE: 'info', ASSIGNED: 'success', LOST: 'danger', BROKEN: 'warning', DISCARDED: 'danger' };
