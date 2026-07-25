@@ -29,6 +29,10 @@ export const AlertProvider = ({ children }) => {
   }, []);
 
   useEffect(() => { fetchAlerts(); }, [fetchAlerts]);
+  useEffect(() => {
+    const timerId = setInterval(fetchAlerts, 3000);
+    return () => clearInterval(timerId);
+  }, [fetchAlerts]);
   useEffect(() => subscribeToAlerts(
     (alert) => setAlerts((prev) => [normalizeAlert(alert), ...prev.filter((item) => item.id !== alert.id)]),
     () => undefined,
