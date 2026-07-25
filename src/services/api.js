@@ -187,13 +187,18 @@ export const droneManagementAPI = { ...droneAPI, runAction: (action, data) => {
 } };
 
 export const subscribeToAlerts = (onAlert, onError) => {
+  if (process.env.REACT_APP_ENABLE_ALERT_SSE !== 'true') return () => undefined;
   if (typeof EventSource === 'undefined') return () => undefined;
   const source = new EventSource(alertAPI.streamUrl());
-  source.onmessage = (event) => {
+  const handleAlert = (event) => {
     try { onAlert(JSON.parse(event.data)); } catch (error) { onError?.(error); }
   };
+  source.addEventListener('alert', handleAlert);
   source.onerror = (error) => onError?.(error);
-  return () => source.close();
+  return () => {
+    source.removeEventListener('alert', handleAlert);
+    source.close();
+  };
 };
 
 // Deprecated page adapters retained until the corresponding screen is redesigned.

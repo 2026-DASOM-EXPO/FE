@@ -43,9 +43,8 @@ export const WORKER_STATUS_META = {
 // 센서 화면에서 영문 key를 사람이 읽을 수 있는 장비명으로 변환합니다.
 export const EQUIPMENT_LABELS = {
   helmet: '안전모',
-  safeSuit: '안전복',
+  safeSuit: '안전조끼',
   safeShoes: '안전화',
-  belt: '안전벨트',
 };
 
 // 알림 심각도
@@ -68,7 +67,6 @@ export const EQUIPMENT_TYPES = {
   HELMET: 'helmet',
   SAFE_SUIT: 'safeSuit',
   SAFE_SHOES: 'safeShoes',
-  BELT: 'belt',
 };
 
 // 정상 범위 (생체 신호)

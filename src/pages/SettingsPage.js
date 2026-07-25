@@ -20,8 +20,7 @@ const settingsCategories = [
           {
             title: 'LV.1 (안전)',
             items: [
-              { label: '심박수 정상 범위', detailType: 'heartRate' },
-              { label: '작업복 정상 착용', detailType: 'safeSuit' },
+              { label: '안전모·안전조끼·안전화 정상 착용', detailType: 'safeSuit' },
             ],
           },
           {
@@ -29,22 +28,15 @@ const settingsCategories = [
             items: [
               { label: '작업복 미착용', detailType: 'safeSuit' },
               { label: '안전모 미착용', detailType: 'helmet' },
-              { label: '안전벨트 미착용', detailType: 'belt' },
+              { label: '안전화 미착용', detailType: 'safeShoes' },
             ],
           },
           {
             title: 'LV.3 (위험)',
             items: [
               { label: 'SOS 버튼', detailType: 'sos' },
-              { label: '심박수 임계치', detailType: 'heartRate' },
-            ],
-          },
-          {
-            title: 'LV.4 (심각)',
-            items: [
-              { label: '낙상 감지', detailType: 'fall' },
-              { label: '심박수 매우 낮음', detailType: 'heartRate' },
-              { label: '119 자동 신고 여부', detailType: 'emergencyCall' },
+              { label: '드론 즉시 출동', detailType: 'drone' },
+              { label: '관리자 확인 후 720p 영상', detailType: 'camera' },
             ],
           },
         ],
@@ -72,7 +64,7 @@ const settingsCategories = [
         items: [{ label: '착용 여부 감지 ON', detailType: 'safeShoes' }],
       },
       {
-        title: '안전벨트',
+        title: '안전조끼',
         items: [
           { label: 'GPS 사용', detailType: 'gps' },
           { label: 'SOS 버튼 활성화', detailType: 'sos' },
@@ -229,7 +221,7 @@ const settingsCategories = [
         items: [
           { label: '작업복 탐지', detailType: 'safeSuit' },
           { label: '안전모 탐지', detailType: 'helmet' },
-          { label: '안전벨트 탐지', detailType: 'belt' },
+          { label: '안전화 탐지', detailType: 'safeShoes' },
           { label: '신뢰도(Confidence)', detailType: 'ai' },
           { label: '탐지 주기(FPS)', detailType: 'ai' },
           { label: '모델 버전', detailType: 'ai' },
@@ -243,7 +235,6 @@ const equipmentKeyMap = {
   helmet: 'helmet',
   safeSuit: 'safeSuit',
   safeShoes: 'safeShoes',
-  belt: 'belt',
 };
 
 const statusLabelMap = {

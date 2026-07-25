@@ -3,9 +3,10 @@ import { useWorker } from '../context/WorkerContext';
 import { useAlert } from '../context/AlertContext';
 import WorkerCard from '../components/worker/WorkerCard';
 import WorkerDetailModal from '../components/worker/WorkerDetailModal';
+import EmergencyAlertModal from '../components/dashboard/EmergencyAlertModal';
 import { WORKER_STATUS } from '../utils/constants';
 import { getRelativeTime } from '../utils/helpers';
-import { dashboardAPI } from '../services/api';
+import { dashboardAPI, riskEventAPI } from '../services/api';
 import './DashboardPage.css';
 
 /**
@@ -14,9 +15,13 @@ import './DashboardPage.css';
  */
 const DashboardPage = () => {
   const { workers, fetchWorkers, loading, refreshing, error, lastFetchedAt } = useWorker();
-  const { alerts, unreadCount } = useAlert();
+  const { alerts, unreadCount, markAsRead } = useAlert();
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [summary, setSummary] = useState(null);
+  const [activeEmergency, setActiveEmergency] = useState(null);
+  const [emergencyVideo, setEmergencyVideo] = useState(null);
+  const [emergencyLoading, setEmergencyLoading] = useState(false);
+  const [emergencyError, setEmergencyError] = useState('');
 
   useEffect(() => {
     fetchWorkers();
@@ -34,6 +39,47 @@ const DashboardPage = () => {
     }, 15000);
     return () => clearInterval(interval);
   }, [fetchWorkers]);
+
+  useEffect(() => {
+    const latestSos = alerts.find((alert) => alert.type === 'sos_request' && !alert.read);
+    if (latestSos && activeEmergency?.id !== latestSos.id) {
+      setActiveEmergency(latestSos);
+      setEmergencyVideo(null);
+      setEmergencyError('');
+    }
+  }, [activeEmergency?.id, alerts]);
+
+  const confirmEmergency = async () => {
+    const riskEventId = activeEmergency?.riskEvent?.id;
+    if (!riskEventId) {
+      setEmergencyError('연결된 SOS 위험 이벤트를 찾을 수 없습니다.');
+      return;
+    }
+
+    setEmergencyLoading(true);
+    setEmergencyError('');
+    const confirmed = await riskEventAPI.updateStatus(riskEventId, 'PROCESSING');
+    if (!confirmed.success) {
+      setEmergencyError(confirmed.error || 'SOS 확인 처리에 실패했습니다.');
+      setEmergencyLoading(false);
+      return;
+    }
+
+    const reports = await riskEventAPI.getReports({ workerId: activeEmergency.workerId });
+    const report = reports.success
+      ? (reports.data || []).find((item) => item.riskEvent?.id === riskEventId)
+      : null;
+
+    if (!report?.droneVideo) {
+      setEmergencyError(reports.error || '드론 영상 스트림이 아직 준비되지 않았습니다.');
+      setEmergencyLoading(false);
+      return;
+    }
+
+    setEmergencyVideo(report.droneVideo);
+    await markAsRead(activeEmergency.id);
+    setEmergencyLoading(false);
+  };
 
   // 작업자 상태별 통계는 workers가 바뀔 때만 다시 계산해 불필요한 반복 연산을 줄입니다.
   const stats = useMemo(() => ({
@@ -189,6 +235,17 @@ const DashboardPage = () => {
       <WorkerDetailModal
         worker={selectedWorker}
         onClose={() => setSelectedWorker(null)}
+      />
+      <EmergencyAlertModal
+        alert={activeEmergency}
+        video={emergencyVideo}
+        loading={emergencyLoading}
+        error={emergencyError}
+        onConfirm={confirmEmergency}
+        onClose={() => {
+          setActiveEmergency(null);
+          setEmergencyVideo(null);
+        }}
       />
     </div>
   );

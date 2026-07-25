@@ -22,9 +22,10 @@ import MonitoringPage from './pages/MonitoringPage';
 import DroneResponsePage from './pages/DroneResponsePage';
 import AlertsPage from './pages/AlertsPage';
 import SettingsPage from './pages/SettingsPage';
+import LoginPage from './pages/LoginPage';
 
 function AuthenticatedApp() {
-  const { loading } = useAuth();
+  const { loading, user } = useAuth();
   // currentPage는 별도 라우터를 쓰지 않는 현재 구조에서 화면 전환의 단일 기준입니다.
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
@@ -78,6 +79,7 @@ function AuthenticatedApp() {
   };
 
   if (loading) return <div className="loading">인증 정보를 확인하는 중...</div>;
+  if (!user) return <LoginPage />;
 
   return (
       <WorkerProvider>
