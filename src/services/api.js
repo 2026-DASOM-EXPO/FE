@@ -161,7 +161,6 @@ export const droneDropAPI = {
 };
 
 export const iotAPI = {
-  attendance: (data) => post('/iot/attendance', data),
   biometrics: (data) => post('/iot/biometrics', data),
   imu: (data) => post('/iot/imu', data),
   gps: (data) => post('/iot/gps', data),
@@ -170,67 +169,92 @@ export const iotAPI = {
   droneObstacle: (data) => post('/iot/drone-obstacle', data),
 };
 
-// Existing pages import these names. They now point to the documented domains.
-export const safetyEquipmentAPI = { ...equipmentAPI, runAction: (action, data) => {
-  if (action === 'read-list') return equipmentAPI.getAll();
-  if (action === 'read-detail') return equipmentAPI.getById(data.equipmentId);
-  if (action === 'delete') return equipmentAPI.delete(data.equipmentId);
-  if (action === 'update') return equipmentAPI.update(data.equipmentId, data);
-  return equipmentAPI.create(data);
-} };
-export const droneManagementAPI = { ...droneAPI, runAction: (action, data) => {
-  if (action === 'read-list') return droneAPI.getAll();
-  if (action === 'read-detail') return droneAPI.getById(data.droneId);
-  if (action === 'delete') return droneAPI.delete(data.droneId);
-  if (action === 'update') return droneAPI.update(data.droneId, data);
-  return droneAPI.create(data);
-} };
+export const realtimeEventNames = [
+  'alert',
+  'sensor',
+  'equipment',
+  'equipment-deleted',
+  'worker',
+  'worker-deleted',
+  'drone',
+  'drone-deleted',
+  'dispatch',
+  'video',
+  'risk',
+];
 
-export const subscribeToAlerts = (onAlert, onError) => {
-  if (process.env.REACT_APP_ENABLE_ALERT_SSE !== 'true') return () => undefined;
-  if (typeof EventSource === 'undefined') return () => undefined;
-  const source = new EventSource(alertAPI.streamUrl());
-  const handleAlert = (event) => {
-    try { onAlert(JSON.parse(event.data)); } catch (error) { onError?.(error); }
+export const subscribeToRealtime = (handlers = {}, onStatus) => {
+  if (typeof fetch === 'undefined' || typeof TextDecoder === 'undefined') return () => undefined;
+
+  const controller = new AbortController();
+  const token = tokenStorage.getAccessToken();
+  let stopped = false;
+
+  const parseBlock = (block) => {
+    let eventName = 'message';
+    const dataLines = [];
+    block.split(/\r?\n/).forEach((line) => {
+      if (line.startsWith('event:')) eventName = line.slice(6).trim();
+      if (line.startsWith('data:')) dataLines.push(line.slice(5).trimStart());
+    });
+    if (!dataLines.length || !handlers[eventName]) return;
+    try {
+      handlers[eventName](JSON.parse(dataLines.join('\n')));
+    } catch (error) {
+      onStatus?.('error', error);
+    }
   };
-  source.addEventListener('alert', handleAlert);
-  source.onerror = (error) => onError?.(error);
+
+  const delayReconnect = () => new Promise((resolve) => {
+    const timeout = setTimeout(resolve, 1500);
+    controller.signal.addEventListener('abort', () => {
+      clearTimeout(timeout);
+      resolve();
+    }, { once: true });
+  });
+
+  const connect = async () => {
+    while (!stopped) {
+      try {
+        onStatus?.('connecting');
+        const response = await fetch(alertAPI.streamUrl(), {
+          method: 'GET',
+          headers: {
+            Accept: 'text/event-stream',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        if (!response.ok || !response.body) {
+          throw new Error(`SSE 연결에 실패했습니다. (${response.status})`);
+        }
+
+        onStatus?.('live');
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (!stopped) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const blocks = buffer.split(/\r?\n\r?\n/);
+          buffer = blocks.pop() || '';
+          blocks.forEach(parseBlock);
+        }
+      } catch (error) {
+        if (stopped || error.name === 'AbortError') return;
+        onStatus?.('error', error);
+      }
+
+      if (!stopped) await delayReconnect();
+    }
+  };
+
+  connect();
   return () => {
-    source.removeEventListener('alert', handleAlert);
-    source.close();
+    stopped = true;
+    controller.abort();
   };
 };
-
-// Deprecated page adapters retained until the corresponding screen is redesigned.
-export const iotIntegrationAPI = {
-  syncFeature: (feature, data) => {
-    const handler = {
-      'rfid-attendance': iotAPI.attendance,
-      'biometric-realtime': iotAPI.biometrics,
-      'motion-impact': iotAPI.imu,
-      'gps-location': iotAPI.gps,
-      'equipment-status': iotAPI.equipmentStatus,
-      'sos-report': iotAPI.sos,
-      'drone-obstacle': iotAPI.droneObstacle,
-    }[feature];
-    return handler ? handler(data) : Promise.resolve({ success: false, error: '지원하지 않는 IoT 데이터 유형입니다.' });
-  },
-};
-export const monitoringAPI = {
-  queryFeature: (feature, filters) => {
-    const handler = {
-      'alert-stream': alertAPI.getAll,
-      'equipment-overview': equipmentAPI.getStatus,
-      'equipment-history': () => equipmentAPI.getLogs(filters),
-      'incident-report': () => riskEventAPI.getReports(filters),
-    }[feature];
-    return handler ? handler() : Promise.resolve({ success: false, error: '지원하지 않는 관제 조회입니다.' });
-  },
-};
-export const droneResponseAPI = {
-  dispatchDrone: (droneId, data) => droneAPI.dispatch(droneId, data),
-  dropEmergencyKit: (dispatchId, data) => droneDropAPI.create(dispatchId, data),
-  getActiveVideo: (droneId) => droneAPI.getActiveVideo(droneId),
-  startVideo: (videoId) => droneVideoAPI.start(videoId),
-};
-export const deviceManagementAPI = wearableCommandAPI;
