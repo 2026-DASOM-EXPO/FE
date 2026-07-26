@@ -51,7 +51,7 @@ test('shows manager confirmation before exposing the video', () => {
   expect(screen.getByText('외부 신고 안 함')).toBeInTheDocument();
   expect(screen.queryByLabelText('드론 현장 영상')).not.toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole('button', { name: '확인하고 현장 영상 보기' }));
+  fireEvent.click(screen.getByRole('button', { name: '출동' }));
   expect(onConfirm).toHaveBeenCalledTimes(1);
 });
 

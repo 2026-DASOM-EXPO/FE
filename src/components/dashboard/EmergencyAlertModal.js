@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import './EmergencyAlertModal.css';
 
-const DroneVideoPlayer = ({ video }) => {
+export const DroneVideoPlayer = ({ video }) => {
   const videoRef = useRef(null);
   const [playerError, setPlayerError] = useState('');
 
@@ -104,14 +104,17 @@ const EmergencyAlertModal = ({
         {!video ? (
           <>
             <div className="emergency-modal__facts">
-              <div><span>드론</span><strong>자동 출동 중</strong></div>
+              <div><span>드론</span><strong>관리자 승인 대기</strong></div>
               <div><span>119 신고</span><strong>외부 신고 안 함</strong></div>
-              <div><span>영상</span><strong>관리자 확인 후 시작</strong></div>
+              <div><span>영상</span><strong>출동 승인 후 시작</strong></div>
             </div>
             {error && <p className="emergency-modal__error">{error}</p>}
-            <button type="button" className="emergency-modal__confirm" onClick={onConfirm} disabled={loading}>
-              {loading ? '영상 연결 중...' : '확인하고 현장 영상 보기'}
-            </button>
+            <div className="emergency-modal__actions">
+              <button type="button" className="emergency-modal__cancel" onClick={onClose} disabled={loading}>취소</button>
+              <button type="button" className="emergency-modal__confirm" onClick={onConfirm} disabled={loading}>
+                {loading ? '출동 및 영상 연결 중...' : '출동'}
+              </button>
+            </div>
           </>
         ) : (
           <DroneVideoPlayer video={video} />

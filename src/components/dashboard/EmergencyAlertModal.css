@@ -110,6 +110,25 @@
   cursor: pointer;
 }
 
+.emergency-modal__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.emergency-modal__actions .emergency-modal__confirm {
+  width: 100%;
+}
+
+.emergency-modal__cancel {
+  min-height: 46px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  color: var(--text-color);
+  background: transparent;
+  font-weight: 900;
+}
+
 .emergency-modal__confirm:disabled {
   cursor: wait;
   opacity: 0.65;
