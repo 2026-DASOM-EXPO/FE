@@ -201,6 +201,32 @@ export const subscribeToAlerts = (onAlert, onError) => {
   };
 };
 
+export const realtimeAPI = {
+  streamUrl: () => `${API_BASE_URL}/realtime/stream`,
+};
+
+// ESP32 -> 백엔드 -> 프론트로 이어지는 장비 착용상태/센서값 실시간 반영.
+// 백엔드가 /realtime/stream(SseEmitter)에서 'equipment-status', 'sensor-update' 이벤트를 emit해줘야 동작함.
+export const subscribeToDeviceUpdates = (handlers = {}, onError) => {
+  if (process.env.REACT_APP_ENABLE_DEVICE_SSE !== 'true') return () => undefined;
+  if (typeof EventSource === 'undefined') return () => undefined;
+  const source = new EventSource(realtimeAPI.streamUrl());
+  const handleEquipmentStatus = (event) => {
+    try { handlers.onEquipmentStatus?.(JSON.parse(event.data)); } catch (error) { onError?.(error); }
+  };
+  const handleSensorUpdate = (event) => {
+    try { handlers.onSensorUpdate?.(JSON.parse(event.data)); } catch (error) { onError?.(error); }
+  };
+  source.addEventListener('equipment-status', handleEquipmentStatus);
+  source.addEventListener('sensor-update', handleSensorUpdate);
+  source.onerror = (error) => onError?.(error);
+  return () => {
+    source.removeEventListener('equipment-status', handleEquipmentStatus);
+    source.removeEventListener('sensor-update', handleSensorUpdate);
+    source.close();
+  };
+};
+
 // Deprecated page adapters retained until the corresponding screen is redesigned.
 export const iotIntegrationAPI = {
   syncFeature: (feature, data) => {
