@@ -10,7 +10,7 @@ import './WorkerDetailModal.css';
  * @param {object|null} worker - 상세로 표시할 작업자 객체입니다. null이면 렌더링하지 않습니다.
  * @param {Function} onClose - 닫기 버튼 또는 배경 클릭 시 실행할 콜백입니다.
  */
-const WorkerDetailModal = ({ worker, onClose }) => {
+const WorkerDetailModal = ({ worker, onClose, onEdit, onDelete }) => {
   // 선택된 작업자가 없을 때는 모달 DOM 자체를 만들지 않아 포커스/스크린리더 혼선을 줄입니다.
   if (!worker) {
     return null;
@@ -43,9 +43,11 @@ const WorkerDetailModal = ({ worker, onClose }) => {
             <h2>{worker.name}</h2>
             <p>{worker.workerId} · {worker.department}</p>
           </div>
-          <button className="modal-close-button" type="button" onClick={onClose}>
-            닫기
-          </button>
+          <div className="worker-modal-actions">
+            <button type="button" onClick={onEdit}>수정</button>
+            <button type="button" className="worker-delete-button" onClick={onDelete}>삭제</button>
+            <button className="modal-close-button" type="button" onClick={onClose}>닫기</button>
+          </div>
         </header>
 
         {/* 현장 대응 시 가장 먼저 보는 생체 신호를 상단에 크게 배치합니다. */}

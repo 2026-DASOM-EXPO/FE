@@ -55,6 +55,24 @@
   font-weight: 800;
 }
 
+.worker-modal-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.worker-modal-actions button {
+  min-height: 38px;
+  border: 1px solid var(--border-color);
+  background: var(--light-color);
+  font-weight: 800;
+}
+
+.worker-modal-actions .worker-delete-button {
+  color: var(--danger-color);
+  background: var(--danger-soft);
+}
+
 .detail-status,
 .equipment-chip {
   display: inline-flex;
@@ -173,5 +191,9 @@
 
   .worker-modal-header {
     flex-direction: column;
+  }
+
+  .worker-modal-actions {
+    width: 100%;
   }
 }
