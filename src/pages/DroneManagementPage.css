@@ -340,6 +340,101 @@
   text-align: center;
 }
 
+.drone-control-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--surface-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.drone-control-toolbar > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.drone-control-toolbar span {
+  color: var(--muted-color);
+  font-size: 0.86rem;
+}
+
+.drone-control-toolbar > div:last-child {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.drone-management-workspace--unified {
+  grid-template-columns: minmax(500px, 0.95fr) minmax(460px, 1.05fr);
+}
+
+.drone-management-workspace--unified .drone-management-row {
+  grid-template-columns: minmax(180px, 1.4fr) minmax(120px, 1fr) 70px auto;
+}
+
+.drone-management-workspace--unified .drone-management-code {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+}
+
+.drone-stream-panel {
+  min-height: 420px;
+  padding: var(--spacing-lg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--surface-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.drone-dispatch-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.drone-dispatch-summary > div {
+  padding: var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--light-color);
+}
+
+.drone-dispatch-summary span,
+.drone-dispatch-summary strong {
+  display: block;
+}
+
+.drone-dispatch-summary span {
+  margin-bottom: 4px;
+  color: var(--muted-color);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.drone-stream-panel .emergency-video {
+  margin-top: var(--spacing-md);
+}
+
+.drone-stream-panel .emergency-video__meta {
+  color: var(--dark-color);
+}
+
+.drone-stream-empty {
+  display: grid;
+  min-height: 280px;
+  place-items: center;
+  padding: var(--spacing-lg);
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  color: var(--muted-color);
+  text-align: center;
+}
+
 @media (max-width: 1180px) {
   .drone-management-hero {
     flex-direction: column;
@@ -368,6 +463,21 @@
 
   .drone-management-row,
   .drone-management-info {
+    grid-template-columns: 1fr;
+  }
+
+  .drone-control-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .drone-control-toolbar > div:last-child {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .drone-management-workspace--unified .drone-management-row,
+  .drone-dispatch-summary {
     grid-template-columns: 1fr;
   }
 }

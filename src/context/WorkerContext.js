@@ -1,16 +1,15 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { workerAPI, sensorAPI, equipmentAPI, subscribeToDeviceUpdates } from '../services/api';
+import { workerAPI, sensorAPI, equipmentAPI } from '../services/api';
+import { useRealtime } from './RealtimeContext';
 
 const WorkerContext = createContext(null);
 const statusFromApi = { NORMAL: 'normal', WARNING: 'warning', DANGER: 'danger', INACTIVE: 'off-duty' };
 const statusToApi = { normal: 'NORMAL', warning: 'WARNING', danger: 'DANGER', 'off-duty': 'INACTIVE' };
-const EQUIPMENT_TYPE_KEY = { HELMET: 'helmet', VEST: 'safeSuit', SHOES: 'safeShoes' };
 
 const normalizeWorker = (worker, sensorData, equipmentStatus) => ({
   ...worker,
   workerId: String(worker.id),
   phone: worker.phoneNumber,
-  rfid: worker.rfidTag,
   status: statusFromApi[worker.status] || worker.status?.toLowerCase() || 'off-duty',
   location: worker.currentLatitude != null && worker.currentLongitude != null
     ? { lat: worker.currentLatitude, lng: worker.currentLongitude }
@@ -29,13 +28,13 @@ const toRequest = (data) => ({
   name: data.name,
   department: data.department,
   phoneNumber: data.phoneNumber ?? data.phone,
-  rfidTag: data.rfidTag ?? data.rfid,
   status: statusToApi[data.status] || data.status,
   currentLatitude: data.currentLatitude ?? data.location?.lat,
   currentLongitude: data.currentLongitude ?? data.location?.lng,
 });
 
 export const WorkerProvider = ({ children }) => {
+  const { subscribe } = useRealtime();
   const [workers, setWorkers] = useState([]);
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -44,6 +43,58 @@ export const WorkerProvider = ({ children }) => {
   const [lastFetchedAt, setLastFetchedAt] = useState(null);
   const fetched = useRef(false);
   const inFlight = useRef(false);
+
+  useEffect(() => {
+    const unsubscribeWorker = subscribe('worker', (worker) => {
+      setWorkers((current) => {
+        const existing = current.find((item) => item.id === worker.id);
+        const normalized = normalizeWorker(
+          { ...(existing || {}), ...worker },
+          existing?.sensorData,
+          existing?.sensorData?.equipmentStatus
+        );
+        return existing
+          ? current.map((item) => item.id === worker.id ? normalized : item)
+          : [normalized, ...current];
+      });
+    });
+    const unsubscribeWorkerDeleted = subscribe('worker-deleted', ({ id }) => {
+      setWorkers((current) => current.filter((worker) => worker.id !== id));
+      setSelectedWorker((current) => current?.id === id ? null : current);
+    });
+    const unsubscribeEquipment = subscribe('equipment', (equipment) => {
+      const workerId = equipment.worker?.id;
+      const key = {
+        HELMET: 'helmet',
+        VEST: 'safeSuit',
+        SOS_BUTTON: 'safeSuit',
+        SHOES: 'safeShoes',
+      }[equipment.type];
+      if (!workerId || !key) return;
+      setWorkers((current) => current.map((worker) => {
+        if (worker.id !== workerId) return worker;
+        return {
+          ...worker,
+          sensorData: {
+            ...(worker.sensorData || {}),
+            equipmentStatus: {
+              helmet: false,
+              safeSuit: false,
+              safeShoes: false,
+              ...(worker.sensorData?.equipmentStatus || {}),
+              [key]: equipment.wearStatus === 'WORN',
+            },
+          },
+          lastUpdate: new Date(equipment.lastDetectedAt || Date.now()),
+        };
+      }));
+    });
+    return () => {
+      unsubscribeWorker();
+      unsubscribeWorkerDeleted();
+      unsubscribeEquipment();
+    };
+  }, [subscribe]);
 
   const fetchWorkers = useCallback(async () => {
     if (inFlight.current) return;
@@ -57,7 +108,7 @@ export const WorkerProvider = ({ children }) => {
       const equipmentByWorker = (equipmentResult.success ? equipmentResult.data : []).reduce((acc, item) => {
         const workerId = item.worker?.id;
         if (!workerId) return acc;
-        const key = EQUIPMENT_TYPE_KEY[item.type];
+        const key = { HELMET: 'helmet', VEST: 'safeSuit', SHOES: 'safeShoes' }[item.type];
         if (!key) return acc;
         acc[workerId] = {
           helmet: false,
@@ -137,30 +188,10 @@ export const WorkerProvider = ({ children }) => {
       : worker));
   }, []);
 
-  // ESP32 압력센서 등이 눌려 wearStatus가 바뀌면 백엔드가 SSE로 push하는 이벤트를 즉시 반영합니다.
-  const updateEquipmentStatus = useCallback((workerId, equipmentType, wearStatus) => {
-    const key = EQUIPMENT_TYPE_KEY[equipmentType];
-    if (!key) return;
-    setWorkers((prev) => prev.map((worker) => worker.id !== workerId ? worker : {
-      ...worker,
-      sensorData: {
-        ...worker.sensorData,
-        equipmentStatus: { ...worker.sensorData?.equipmentStatus, [key]: wearStatus === 'WORN' },
-      },
-    }));
-  }, []);
-
-  // 백엔드 /realtime/stream(SSE) 구독. 백엔드 준비 전까지는 REACT_APP_ENABLE_DEVICE_SSE 플래그로 비활성 상태이며,
-  // 기존 15초 폴링(fetchWorkers)이 폴백으로 계속 동작합니다.
-  useEffect(() => subscribeToDeviceUpdates({
-    onEquipmentStatus: (payload) => updateEquipmentStatus(payload.workerId, payload.equipmentType, payload.wearStatus),
-    onSensorUpdate: (payload) => updateSensorData(payload.workerId, payload),
-  }, (streamError) => console.error('Realtime device stream error:', streamError)), [updateEquipmentStatus, updateSensorData]);
-
   return <WorkerContext.Provider value={{
     workers, selectedWorker, loading, refreshing, error, lastFetchedAt,
     fetchWorkers, getWorkerDetail, addWorker, updateWorker, deleteWorker,
-    updateWorkerStatus, updateSensorData, updateEquipmentStatus,
+    updateWorkerStatus, updateSensorData,
   }}>{children}</WorkerContext.Provider>;
 };
 

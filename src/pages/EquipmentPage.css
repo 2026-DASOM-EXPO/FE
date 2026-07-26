@@ -340,6 +340,186 @@
   text-align: center;
 }
 
+.equipment-workspace--unified {
+  grid-template-columns: minmax(0, 1.45fr) minmax(360px, 0.85fr);
+}
+
+.equipment-command-panel {
+  padding: var(--spacing-lg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--surface-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.equipment-id {
+  display: inline-flex;
+  margin-right: 9px;
+  padding: 3px 7px;
+  border-radius: 7px;
+  color: #7cb0ff;
+  background: rgba(59, 130, 246, 0.14);
+  font-size: 0.72rem;
+  font-style: normal;
+}
+
+.equipment-command-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.equipment-command-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted-color);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.equipment-command-form button {
+  grid-column: 1 / -1;
+}
+
+.equipment-command-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.equipment-command-list h3 {
+  margin: 0 0 4px;
+}
+
+.equipment-command-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.equipment-command-row span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted-color);
+  font-size: 0.8rem;
+}
+
+.realtime-state--live {
+  color: var(--success-color);
+}
+
+.realtime-state--error {
+  color: var(--danger-color);
+}
+
+.equipment-realtime-panel {
+  padding: var(--spacing-lg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--surface-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.equipment-realtime-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+}
+
+.equipment-realtime-header > div:first-child > span {
+  color: var(--success-color);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.equipment-realtime-header h2 {
+  margin: var(--spacing-xs) 0;
+  font-size: 1.3rem;
+}
+
+.equipment-realtime-header p {
+  margin: 0;
+  color: var(--muted-color);
+}
+
+.equipment-realtime-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  padding: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--light-color);
+}
+
+.equipment-realtime-tabs button {
+  min-height: 34px;
+  padding: 0 var(--spacing-md);
+}
+
+.equipment-realtime-tabs button.is-active {
+  color: #fff;
+  background: var(--primary-color);
+}
+
+.equipment-realtime-list {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.equipment-realtime-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.35fr) minmax(280px, 1fr);
+  gap: var(--spacing-md);
+  align-items: center;
+  min-height: 68px;
+  padding: var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--info-color);
+  border-radius: 8px;
+}
+
+.equipment-realtime-row--sensor {
+  border-left-color: var(--success-color);
+}
+
+.equipment-realtime-row--equipment {
+  border-left-color: var(--primary-color);
+}
+
+.equipment-realtime-row--alert {
+  border-left-color: var(--danger-color);
+}
+
+.equipment-realtime-row > div:first-child span,
+.equipment-realtime-row time {
+  display: block;
+  color: var(--muted-color);
+  font-size: 0.84rem;
+}
+
+.equipment-realtime-row > div:first-child strong {
+  display: block;
+  margin-top: 4px;
+}
+
+.equipment-realtime-row > div:last-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.equipment-realtime-row time {
+  flex: 0 0 auto;
+}
+
 @media (max-width: 1180px) {
   .equipment-hero {
     flex-direction: column;
@@ -350,8 +530,16 @@
     grid-template-columns: 1fr;
   }
 
+  .equipment-workspace--unified {
+    grid-template-columns: 1fr;
+  }
+
   .equipment-server-card {
     min-width: 0;
+  }
+
+  .equipment-realtime-header {
+    flex-direction: column;
   }
 }
 
@@ -367,7 +555,17 @@
   }
 
   .equipment-row,
-  .equipment-info-grid {
+  .equipment-info-grid,
+  .equipment-command-form {
     grid-template-columns: 1fr;
+  }
+
+  .equipment-realtime-row {
+    grid-template-columns: 1fr;
+  }
+
+  .equipment-realtime-row > div:last-child {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

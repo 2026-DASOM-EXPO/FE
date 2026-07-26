@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { alertAPI, subscribeToAlerts } from '../services/api';
+import { alertAPI } from '../services/api';
+import { useRealtime } from './RealtimeContext';
 
 const AlertContext = createContext(null);
 const normalizeAlert = (alert) => ({
@@ -13,6 +14,7 @@ const normalizeAlert = (alert) => ({
 });
 
 export const AlertProvider = ({ children }) => {
+  const { subscribe } = useRealtime();
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -29,14 +31,9 @@ export const AlertProvider = ({ children }) => {
   }, []);
 
   useEffect(() => { fetchAlerts(); }, [fetchAlerts]);
-  useEffect(() => {
-    const timerId = setInterval(fetchAlerts, 3000);
-    return () => clearInterval(timerId);
-  }, [fetchAlerts]);
-  useEffect(() => subscribeToAlerts(
-    (alert) => setAlerts((prev) => [normalizeAlert(alert), ...prev.filter((item) => item.id !== alert.id)]),
-    () => undefined,
-  ), []);
+  useEffect(() => subscribe('alert', (alert) => {
+    setAlerts((prev) => [normalizeAlert(alert), ...prev.filter((item) => item.id !== alert.id)]);
+  }), [subscribe]);
 
   const unreadCount = useMemo(() => alerts.filter((alert) => !alert.read).length, [alerts]);
   const addAlert = useCallback((alert) => {
