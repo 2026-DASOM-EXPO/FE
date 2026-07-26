@@ -1,6 +1,12 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { workerAPI, sensorAPI, equipmentAPI } from '../services/api';
 import { useRealtime } from './RealtimeContext';
+import {
+  equipmentStatusKey,
+  idsEqual,
+  mergeWorkerEquipment,
+  mergeWorkerSensor,
+} from '../utils/realtimeState';
 
 const WorkerContext = createContext(null);
 const statusFromApi = { NORMAL: 'normal', WARNING: 'warning', DANGER: 'danger', INACTIVE: 'off-duty' };
@@ -34,7 +40,7 @@ const toRequest = (data) => ({
 });
 
 export const WorkerProvider = ({ children }) => {
-  const { subscribe } = useRealtime();
+  const { status: realtimeStatus, subscribe } = useRealtime();
   const [workers, setWorkers] = useState([]);
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -47,52 +53,38 @@ export const WorkerProvider = ({ children }) => {
   useEffect(() => {
     const unsubscribeWorker = subscribe('worker', (worker) => {
       setWorkers((current) => {
-        const existing = current.find((item) => item.id === worker.id);
+        const existing = current.find((item) => idsEqual(item.id, worker.id));
         const normalized = normalizeWorker(
           { ...(existing || {}), ...worker },
           existing?.sensorData,
           existing?.sensorData?.equipmentStatus
         );
         return existing
-          ? current.map((item) => item.id === worker.id ? normalized : item)
+          ? current.map((item) => idsEqual(item.id, worker.id) ? normalized : item)
           : [normalized, ...current];
       });
     });
     const unsubscribeWorkerDeleted = subscribe('worker-deleted', ({ id }) => {
-      setWorkers((current) => current.filter((worker) => worker.id !== id));
-      setSelectedWorker((current) => current?.id === id ? null : current);
+      setWorkers((current) => current.filter((worker) => !idsEqual(worker.id, id)));
+      setSelectedWorker((current) => idsEqual(current?.id, id) ? null : current);
     });
     const unsubscribeEquipment = subscribe('equipment', (equipment) => {
-      const workerId = equipment.worker?.id;
-      const key = {
-        HELMET: 'helmet',
-        VEST: 'safeSuit',
-        SOS_BUTTON: 'safeSuit',
-        SHOES: 'safeShoes',
-      }[equipment.type];
-      if (!workerId || !key) return;
-      setWorkers((current) => current.map((worker) => {
-        if (worker.id !== workerId) return worker;
-        return {
-          ...worker,
-          sensorData: {
-            ...(worker.sensorData || {}),
-            equipmentStatus: {
-              helmet: false,
-              safeSuit: false,
-              safeShoes: false,
-              ...(worker.sensorData?.equipmentStatus || {}),
-              [key]: equipment.wearStatus === 'WORN',
-            },
-          },
-          lastUpdate: new Date(equipment.lastDetectedAt || Date.now()),
-        };
-      }));
+      setWorkers((current) => mergeWorkerEquipment(current, equipment));
+      setSelectedWorker((current) => current
+        ? mergeWorkerEquipment([current], equipment)[0]
+        : current);
+    });
+    const unsubscribeSensor = subscribe('sensor', (sensor) => {
+      setWorkers((current) => mergeWorkerSensor(current, sensor));
+      setSelectedWorker((current) => current
+        ? mergeWorkerSensor([current], sensor)[0]
+        : current);
     });
     return () => {
       unsubscribeWorker();
       unsubscribeWorkerDeleted();
       unsubscribeEquipment();
+      unsubscribeSensor();
     };
   }, [subscribe]);
 
@@ -108,7 +100,7 @@ export const WorkerProvider = ({ children }) => {
       const equipmentByWorker = (equipmentResult.success ? equipmentResult.data : []).reduce((acc, item) => {
         const workerId = item.worker?.id;
         if (!workerId) return acc;
-        const key = { HELMET: 'helmet', VEST: 'safeSuit', SHOES: 'safeShoes' }[item.type];
+        const key = equipmentStatusKey(item.type);
         if (!key) return acc;
         acc[workerId] = {
           helmet: false,
@@ -137,6 +129,11 @@ export const WorkerProvider = ({ children }) => {
     inFlight.current = false;
     return result;
   }, []);
+
+  useEffect(() => {
+    if (realtimeStatus !== 'live') return;
+    fetchWorkers();
+  }, [fetchWorkers, realtimeStatus]);
 
   const getWorkerDetail = useCallback(async (workerId) => {
     const cached = workers.find((worker) => worker.id === workerId);

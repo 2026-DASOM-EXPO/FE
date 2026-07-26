@@ -187,7 +187,6 @@ export const subscribeToRealtime = (handlers = {}, onStatus) => {
   if (typeof fetch === 'undefined' || typeof TextDecoder === 'undefined') return () => undefined;
 
   const controller = new AbortController();
-  const token = tokenStorage.getAccessToken();
   let stopped = false;
 
   const parseBlock = (block) => {
@@ -217,6 +216,7 @@ export const subscribeToRealtime = (handlers = {}, onStatus) => {
     while (!stopped) {
       try {
         onStatus?.('connecting');
+        const token = tokenStorage.getAccessToken();
         const response = await fetch(alertAPI.streamUrl(), {
           method: 'GET',
           headers: {

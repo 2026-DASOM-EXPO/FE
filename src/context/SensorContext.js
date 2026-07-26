@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { sensorAPI } from '../services/api';
+import { useRealtime } from './RealtimeContext';
+import { sensorWorkerId } from '../utils/realtimeState';
 
 /**
  * SensorContext - 센서 데이터 (ESP32) 관리
@@ -12,6 +14,7 @@ const SensorContext = createContext();
  * 작업자별 최신 센서값, 최근 히스토리, 연결 상태를 전역에서 공유합니다.
  */
 export const SensorProvider = ({ children }) => {
+  const { status: realtimeStatus, subscribe } = useRealtime();
   const [sensorData, setSensorData] = useState({});
   const [dataHistory, setDataHistory] = useState({}); // 센서 데이터 히스토리 (분석용)
   const [isConnected, setIsConnected] = useState(false);
@@ -51,6 +54,16 @@ export const SensorProvider = ({ children }) => {
 
     setLastSyncTime(new Date());
   }, []);
+
+  useEffect(() => {
+    setIsConnected(realtimeStatus === 'live');
+  }, [realtimeStatus]);
+
+  useEffect(() => subscribe('sensor', (sensor) => {
+    const workerId = sensorWorkerId(sensor);
+    if (workerId == null) return;
+    updateSensorData(workerId, sensor);
+  }), [subscribe, updateSensorData]);
 
   // 특정 작업자의 센서 데이터 조회
   // 컴포넌트가 sensorData 객체 구조를 직접 알 필요 없도록 접근 함수를 제공합니다.

@@ -3,6 +3,7 @@ import { useWorker } from '../context/WorkerContext';
 import { useRealtime } from '../context/RealtimeContext';
 import { equipmentAPI, sensorAPI, wearableCommandAPI } from '../services/api';
 import EntityModal from '../components/common/EntityModal';
+import { idsEqual, mergeEquipmentSensor, sensorEquipmentId } from '../utils/realtimeState';
 import './EquipmentPage.css';
 
 const typeLabel = {
@@ -82,9 +83,9 @@ const EquipmentPage = () => {
 
   const upsertEquipment = useCallback((incoming) => {
     setEquipment((current) => {
-      const exists = current.some((item) => item.id === incoming.id);
+      const exists = current.some((item) => idsEqual(item.id, incoming.id));
       return exists
-        ? current.map((item) => item.id === incoming.id ? incoming : item)
+        ? current.map((item) => idsEqual(item.id, incoming.id) ? { ...item, ...incoming } : item)
         : [incoming, ...current];
     });
   }, []);
@@ -118,15 +119,20 @@ const EquipmentPage = () => {
 
   useEffect(() => { load(); fetchWorkers(); }, [fetchWorkers, load]);
   useEffect(() => {
+    if (realtimeStatus !== 'live') return;
+    load();
+  }, [load, realtimeStatus]);
+  useEffect(() => {
     const stopEquipment = subscribe('equipment', upsertEquipment);
     const stopDeleted = subscribe('equipment-deleted', ({ id }) => {
       setEquipment((current) => current.filter((item) => item.id !== id));
       setSelectedId((current) => current === id ? null : current);
     });
     const stopSensor = subscribe('sensor', (sensor) => {
-      const equipmentId = sensor.equipment?.id ?? sensor.equipmentId;
-      if (!equipmentId) return;
+      const equipmentId = sensorEquipmentId(sensor);
+      if (equipmentId == null) return;
       setSensorByEquipment((current) => ({ ...current, [equipmentId]: sensor }));
+      setEquipment((current) => mergeEquipmentSensor(current, sensor));
     });
     return () => {
       stopEquipment();
