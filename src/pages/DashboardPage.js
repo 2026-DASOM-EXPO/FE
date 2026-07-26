@@ -87,12 +87,15 @@ const DashboardPage = () => {
 
   // 작업자 상태별 통계는 workers가 바뀔 때만 다시 계산해 불필요한 반복 연산을 줄입니다.
   const stats = useMemo(() => ({
-    total: summary?.totalWorkers ?? workers.length,
-    normal: summary?.normalWorkers ?? workers.filter((w) => w.status === WORKER_STATUS.NORMAL).length,
-    warning: summary?.warningWorkers ?? workers.filter((w) => w.status === WORKER_STATUS.WARNING).length,
-    danger: summary?.dangerWorkers ?? workers.filter((w) => w.status === WORKER_STATUS.DANGER).length,
+    total: lastFetchedAt ? workers.length : summary?.totalWorkers ?? workers.length,
+    normal: lastFetchedAt ? workers.filter((w) => w.status === WORKER_STATUS.NORMAL).length : summary?.normalWorkers ?? 0,
+    warning: lastFetchedAt ? workers.filter((w) => w.status === WORKER_STATUS.WARNING).length : summary?.warningWorkers ?? 0,
+    danger: lastFetchedAt ? workers.filter((w) => w.status === WORKER_STATUS.DANGER).length : summary?.dangerWorkers ?? 0,
     offDuty: workers.filter((w) => w.status === WORKER_STATUS.OFF_DUTY).length,
-  }), [summary, workers]);
+    wornEquipment: workers.reduce((count, worker) => (
+      count + Object.values(worker.sensorData?.equipmentStatus || {}).filter(Boolean).length
+    ), 0),
+  }), [lastFetchedAt, summary, workers]);
 
   // 위험/주의 작업자는 대응 우선순위가 높으므로 요약 영역과 목록 정렬에 재사용합니다.
   const priorityWorkers = useMemo(
@@ -159,7 +162,7 @@ const DashboardPage = () => {
         </div>
         <div className="stat-card off-duty">
           <h4>장비 착용</h4>
-          <p className="stat-number">{summary?.wornEquipment ?? '-'}</p>
+          <p className="stat-number">{lastFetchedAt ? stats.wornEquipment : summary?.wornEquipment ?? '-'}</p>
         </div>
         <div className="stat-card alert">
           <h4>출동 중 드론</h4>
