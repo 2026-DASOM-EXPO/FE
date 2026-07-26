@@ -14,14 +14,9 @@ const Navigation = ({ activeMenu, onMenuChange }) => {
 
   // 메뉴 정의를 배열로 유지해 렌더링과 배지 표시 규칙을 한 흐름에서 처리합니다.
   const menus = [
-    { id: 'dashboard', label: '대시보드', icon: '⌂' },
-    { id: 'workers', label: '작업자 관리', icon: '◎' },
-    { id: 'equipment', label: '안전장비', icon: '◇' },
-    { id: 'devices', label: '웨어러블 명령', icon: '▣' },
-    { id: 'droneManagement', label: '드론 관리', icon: '▲' },
-    { id: 'iot', label: 'IoT 연동', icon: '↔' },
-    { id: 'monitoring', label: '관제 모니터링', icon: '◉' },
-    { id: 'drone', label: '드론 대응', icon: '△' },
+    { id: 'dashboard', label: 'Dashboard', icon: '⌂' },
+    { id: 'equipment', label: '안전장비 관리', icon: '◇' },
+    { id: 'drone', label: '드론 관제', icon: '△' },
     { id: 'alerts', label: '알림', icon: '!', badge: unreadCount },
     { id: 'settings', label: '설정', icon: '⚙' },
   ];

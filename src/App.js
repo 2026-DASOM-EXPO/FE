@@ -7,19 +7,16 @@ import { AlertProvider } from './context/AlertContext';
 import { SensorProvider } from './context/SensorContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { RealtimeProvider } from './context/RealtimeContext';
 
 import Header from './components/common/Header';
 import Navigation from './components/common/Navigation';
 import MainLayout from './components/layout/MainLayout';
+import EmergencyDispatchController from './components/dashboard/EmergencyDispatchController';
 
 import DashboardPage from './pages/DashboardPage';
-import WorkersPage from './pages/WorkersPage';
 import EquipmentPage from './pages/EquipmentPage';
-import DeviceManagementPage from './pages/DeviceManagementPage';
 import DroneManagementPage from './pages/DroneManagementPage';
-import IoTIntegrationPage from './pages/IoTIntegrationPage';
-import MonitoringPage from './pages/MonitoringPage';
-import DroneResponsePage from './pages/DroneResponsePage';
 import AlertsPage from './pages/AlertsPage';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
@@ -33,13 +30,8 @@ function AuthenticatedApp() {
   // 메뉴 id와 헤더 타이틀을 한 곳에서 매핑해 페이지 추가/이름 변경 시 수정 범위를 줄입니다.
   const pageTitles = useMemo(() => ({
     dashboard: '대시보드',
-    workers: '작업자 관리',
     equipment: '안전장비 관리',
-    devices: '웨어러블 명령 관리',
-    droneManagement: '드론 관리',
-    iot: 'IoT 연동 관리',
-    monitoring: '관제 모니터링',
-    drone: '드론 대응 시스템',
+    drone: '드론 관제',
     alerts: '알림 관리',
     settings: '설정',
   }), []);
@@ -55,20 +47,10 @@ function AuthenticatedApp() {
     switch (currentPage) {
       case 'dashboard':
         return <DashboardPage />;
-      case 'workers':
-        return <WorkersPage />;
       case 'equipment':
         return <EquipmentPage />;
-      case 'devices':
-        return <DeviceManagementPage />;
-      case 'droneManagement':
-        return <DroneManagementPage />;
-      case 'iot':
-        return <IoTIntegrationPage />;
-      case 'monitoring':
-        return <MonitoringPage />;
       case 'drone':
-        return <DroneResponsePage />;
+        return <DroneManagementPage />;
       case 'alerts':
         return <AlertsPage />;
       case 'settings':
@@ -82,8 +64,9 @@ function AuthenticatedApp() {
   if (!user) return <LoginPage />;
 
   return (
-      <WorkerProvider>
-        <AlertProvider>
+      <RealtimeProvider>
+        <WorkerProvider>
+          <AlertProvider>
           <SensorProvider>
             <MainLayout
               isMobileNavOpen={isMobileNavOpen}
@@ -104,9 +87,11 @@ function AuthenticatedApp() {
             >
               <div className="page-content">{renderPage()}</div>
             </MainLayout>
+            <EmergencyDispatchController />
           </SensorProvider>
-        </AlertProvider>
-      </WorkerProvider>
+          </AlertProvider>
+        </WorkerProvider>
+      </RealtimeProvider>
   );
 }
 
