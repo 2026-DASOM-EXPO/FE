@@ -1,10 +1,28 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import EmergencyAlertModal from './EmergencyAlertModal';
 
+const mockHlsInstances = [];
+
 jest.mock('hls.js', () => ({
   __esModule: true,
   default: class MockHls {
-    static isSupported() { return false; }
+    static Events = { MANIFEST_PARSED: 'manifestParsed', ERROR: 'error' };
+    static ErrorTypes = { NETWORK_ERROR: 'networkError', MEDIA_ERROR: 'mediaError' };
+    static isSupported() { return true; }
+
+    constructor() {
+      this.handlers = {};
+      this.loadSource = jest.fn();
+      this.attachMedia = jest.fn();
+      this.startLoad = jest.fn();
+      this.recoverMediaError = jest.fn();
+      this.destroy = jest.fn();
+      mockHlsInstances.push(this);
+    }
+
+    on(event, handler) {
+      this.handlers[event] = handler;
+    }
   },
 }));
 
@@ -57,4 +75,6 @@ test('renders the confirmed 720p video player', () => {
 
   expect(screen.getByLabelText('드론 현장 영상')).toBeInTheDocument();
   expect(screen.getByText('1280×720 · 30fps · HLS')).toBeInTheDocument();
+  expect(mockHlsInstances.at(-1).loadSource)
+    .toHaveBeenCalledWith('http://localhost:8888/DRONE-1/index.m3u8');
 });
