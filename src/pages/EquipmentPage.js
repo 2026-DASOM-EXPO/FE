@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useWorker } from '../context/WorkerContext';
 import { useRealtime } from '../context/RealtimeContext';
-import { equipmentAPI, sensorAPI, wearableCommandAPI } from '../services/api';
+import { equipmentAPI, iotAPI, sensorAPI, wearableCommandAPI } from '../services/api';
 import EntityModal from '../components/common/EntityModal';
 import { idsEqual, mergeEquipmentSensor, sensorEquipmentId } from '../utils/realtimeState';
 import './EquipmentPage.css';
@@ -53,6 +53,12 @@ const realtimeIdentity = (data = {}) => {
 };
 const realtimeDescription = (type, data = {}) => {
   if (type === 'sensor') {
+    if (data.bpm != null) {
+      return `${data.equipment?.type || 'HEART'} · 심박 ${data.bpm} BPM · ${data.riskLevel || '정상'}`;
+    }
+    if (data.latitude != null && data.longitude != null) {
+      return `GPS · ${data.latitude}, ${data.longitude}`;
+    }
     const value = data.pressureValue ?? (data.sosPressed == null ? '-' : Number(data.sosPressed));
     return `${data.equipment?.type || data.sensorType || '센서'} · 값 ${value} · ${data.wearStatus || data.riskLevel || '-'}`;
   }
@@ -80,6 +86,9 @@ const EquipmentPage = () => {
   const [busy, setBusy] = useState(false);
   const [command, setCommand] = useState({ workerId: '', equipmentId: '', commandType: 'BUZZER_ON', reason: '' });
   const [realtimeFilter, setRealtimeFilter] = useState('all');
+  const [heartRateForm, setHeartRateForm] = useState({ workerId: '', bpm: '' });
+  const [gpsForm, setGpsForm] = useState({ workerId: '', latitude: '', longitude: '' });
+  const [latestHeartSensor, setLatestHeartSensor] = useState(null);
 
   const upsertEquipment = useCallback((incoming) => {
     setEquipment((current) => {
@@ -101,7 +110,7 @@ const EquipmentPage = () => {
       setEquipment(list);
       setSelectedId((current) => current && list.some((item) => item.id === current) ? current : list[0]?.id ?? null);
       setMessage(`장비 ${list.length}개를 동기화했습니다.`);
-      const sensorEquipment = list.filter((item) => ['HELMET', 'SHOES', 'VEST', 'SOS_BUTTON'].includes(item.type));
+      const sensorEquipment = list.filter((item) => ['HELMET', 'SHOES', 'VEST', 'SOS_BUTTON', 'SENSOR_DEVICE'].includes(item.type));
       const sensorResults = await Promise.all(sensorEquipment.map(async (item) => ({
         equipmentId: item.id,
         result: await sensorAPI.getByEquipment(item.id),
@@ -129,6 +138,7 @@ const EquipmentPage = () => {
       setSelectedId((current) => current === id ? null : current);
     });
     const stopSensor = subscribe('sensor', (sensor) => {
+      if (sensor?.bpm != null) setLatestHeartSensor(sensor);
       const equipmentId = sensorEquipmentId(sensor);
       if (equipmentId == null) return;
       setSensorByEquipment((current) => ({ ...current, [equipmentId]: sensor }));
@@ -144,6 +154,7 @@ const EquipmentPage = () => {
   const selected = useMemo(() => equipment.find((item) => item.id === selectedId) || null, [equipment, selectedId]);
   const selectedSensor = selected ? sensorByEquipment[selected.id] : null;
   const isSosEquipment = selected && ['VEST', 'SOS_BUTTON'].includes(selected.type);
+  const isBiometricEquipment = selected?.type === 'SENSOR_DEVICE';
   const totalWorn = equipment.filter((item) => item.wearStatus === 'WORN').length;
   const abnormal = equipment.filter((item) => ['LOST', 'BROKEN'].includes(item.status)).length;
   const visibleEvents = useMemo(
@@ -206,6 +217,34 @@ const EquipmentPage = () => {
     }
   };
 
+  const submitHeartRate = async (event) => {
+    event.preventDefault();
+    const payload = {
+      workerId: Number(heartRateForm.workerId),
+      bpm: Number(heartRateForm.bpm),
+    };
+    const result = await iotAPI.heart(payload);
+    setMessage(result.success ? '심박수 데이터를 수신했습니다.' : result.error);
+    if (result.success) {
+      setLatestHeartSensor(result.data);
+      setHeartRateForm((current) => ({ ...current, bpm: '' }));
+    }
+  };
+
+  const submitGps = async (event) => {
+    event.preventDefault();
+    const payload = {
+      workerId: Number(gpsForm.workerId),
+      latitude: Number(gpsForm.latitude),
+      longitude: Number(gpsForm.longitude),
+    };
+    const result = await iotAPI.gps(payload);
+    setMessage(result.success ? 'GPS 위치 데이터를 수신했습니다.' : result.error);
+    if (result.success) {
+      setGpsForm((current) => ({ ...current, latitude: '', longitude: '' }));
+    }
+  };
+
   const acknowledge = async (id) => {
     const result = await wearableCommandAPI.acknowledge(id);
     setMessage(result.success ? '명령 확인 처리를 완료했습니다.' : result.error);
@@ -232,6 +271,21 @@ const EquipmentPage = () => {
         <div><span>착용 중</span><strong>{totalWorn}개</strong></div>
         <div><span>미착용</span><strong>{equipment.filter((item) => item.wearStatus === 'NOT_WORN').length}개</strong></div>
         <div><span>분실·고장</span><strong>{abnormal}개</strong></div>
+      </section>
+
+      <section className="equipment-heart-rate-panel">
+        <div>
+          <span>실시간 심박</span>
+          <h2>{latestHeartSensor?.bpm != null ? `${latestHeartSensor.bpm} BPM` : '수신 대기'}</h2>
+          <p>
+            {latestHeartSensor
+              ? `${latestHeartSensor.worker?.name || '작업자'} · ${formatTime(latestHeartSensor.measuredAt)}`
+              : '심박수 센서 데이터가 수신되면 이 영역과 장비 상세가 갱신됩니다.'}
+          </p>
+        </div>
+        <strong className={`heart-rate-risk heart-rate-risk--${latestHeartSensor?.riskLevel || 'normal'}`}>
+          {latestHeartSensor?.riskLevel || 'NORMAL'}
+        </strong>
       </section>
 
       <div className="equipment-workspace equipment-workspace--unified">
@@ -265,13 +319,16 @@ const EquipmentPage = () => {
                 <div><span>장비 ID</span><strong>#{selected.id}</strong></div>
                 <div><span>배정 작업자</span><strong>{selected.worker?.name || '미배정'}</strong></div>
                 <div>
-                  <span>{isSosEquipment ? '실시간 SOS 값' : '실시간 ADC'}</span>
-                  <strong>{isSosEquipment ? (selectedSensor ? Number(selectedSensor.sosPressed) : '-') : `${selectedSensor?.pressureValue ?? '-'} / 4095`}</strong>
+                  <span>{isBiometricEquipment ? '실시간 심박수' : isSosEquipment ? '실시간 SOS 값' : '실시간 ADC'}</span>
+                  <strong>{isBiometricEquipment ? `${selectedSensor?.bpm ?? '-'} BPM` : isSosEquipment ? (selectedSensor ? Number(selectedSensor.sosPressed) : '-') : `${selectedSensor?.pressureValue ?? '-'} / 4095`}</strong>
                 </div>
                 <div>
                   <span>센서 판정</span>
-                  <strong>{isSosEquipment ? (selectedSensor?.sosPressed ? 'SOS 발생' : '정상') : (wearLabel[selectedSensor?.wearStatus || selected.wearStatus] || '미확인')}</strong>
+                  <strong>{isBiometricEquipment ? (selectedSensor?.riskLevel || '정상') : isSosEquipment ? (selectedSensor?.sosPressed ? 'SOS 발생' : '정상') : (wearLabel[selectedSensor?.wearStatus || selected.wearStatus] || '미확인')}</strong>
                 </div>
+                {isBiometricEquipment && (
+                  <div><span>GPS</span><strong>{selectedSensor?.latitude != null && selectedSensor?.longitude != null ? `${selectedSensor.latitude}, ${selectedSensor.longitude}` : '-'}</strong></div>
+                )}
                 <div><span>최근 센서 수신</span><strong>{formatTime(selectedSensor?.measuredAt || selected.lastDetectedAt)}</strong></div>
                 <div><span>부저</span><strong>{selected.buzzerEnabled ? 'ON' : 'OFF'}</strong></div>
               </div>
@@ -314,6 +371,19 @@ const EquipmentPage = () => {
               </div>
             ))}
           </div>
+          <form className="equipment-heart-rate-form" onSubmit={submitHeartRate}>
+            <h3>심박수 입력</h3>
+            <label>작업자<select required value={heartRateForm.workerId} onChange={(e) => setHeartRateForm((p) => ({ ...p, workerId: e.target.value }))}><option value="">선택</option>{workers.map((item) => <option key={item.id} value={item.id}>#{item.id} {item.name}</option>)}</select></label>
+            <label>BPM<input required type="number" min="0" max="220" value={heartRateForm.bpm} onChange={(e) => setHeartRateForm((p) => ({ ...p, bpm: e.target.value }))} /></label>
+            <button className="btn-primary" type="submit">심박 데이터 전송</button>
+          </form>
+          <form className="equipment-heart-rate-form" onSubmit={submitGps}>
+            <h3>GPS 위치 입력</h3>
+            <label>작업자<select required value={gpsForm.workerId} onChange={(e) => setGpsForm((p) => ({ ...p, workerId: e.target.value }))}><option value="">선택</option>{workers.map((item) => <option key={item.id} value={item.id}>#{item.id} {item.name}</option>)}</select></label>
+            <label>위도<input required type="number" step="0.000001" value={gpsForm.latitude} onChange={(e) => setGpsForm((p) => ({ ...p, latitude: e.target.value }))} /></label>
+            <label>경도<input required type="number" step="0.000001" value={gpsForm.longitude} onChange={(e) => setGpsForm((p) => ({ ...p, longitude: e.target.value }))} /></label>
+            <button className="btn-primary" type="submit">GPS 데이터 전송</button>
+          </form>
         </section>
       </div>
 

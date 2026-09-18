@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useWorker } from '../context/WorkerContext';
 import { useAlert } from '../context/AlertContext';
 import WorkerCard from '../components/worker/WorkerCard';
@@ -32,6 +32,11 @@ const DashboardPage = () => {
   const [workerModalMode, setWorkerModalMode] = useState(null);
   const [workerForm, setWorkerForm] = useState({ name: '', department: '', phone: '', status: 'normal' });
   const [workerBusy, setWorkerBusy] = useState(false);
+  const [jetsonIp, setJetsonIp] = useState('');
+  const [streamPath, setStreamPath] = useState('drone');
+  const [streamFailed, setStreamFailed] = useState(false);
+  const [streamLoading, setStreamLoading] = useState(false);
+  const streamFailTimerRef = useRef(null);
 
   useEffect(() => {
     fetchWorkers();
@@ -117,6 +122,41 @@ const DashboardPage = () => {
     return [...workers].sort((a, b) => (order[a.status] ?? 4) - (order[b.status] ?? 4));
   }, [workers]);
 
+  const mediaMtxStreamUrl = useMemo(() => {
+    const trimmedIp = jetsonIp.trim();
+    const normalizedPath = streamPath.trim().replace(/^\/+/, '');
+    if (!trimmedIp || !normalizedPath) return '';
+    return `http://${trimmedIp}:8889/${normalizedPath}?autoplay=true&muted=true&controls=false&playsInline=true`;
+  }, [jetsonIp, streamPath]);
+
+  useEffect(() => {
+    if (streamFailTimerRef.current) {
+      window.clearTimeout(streamFailTimerRef.current);
+      streamFailTimerRef.current = null;
+    }
+
+    if (!mediaMtxStreamUrl) {
+      setStreamLoading(false);
+      setStreamFailed(false);
+      return undefined;
+    }
+
+    setStreamLoading(true);
+    setStreamFailed(false);
+
+    streamFailTimerRef.current = window.setTimeout(() => {
+      setStreamLoading(false);
+      setStreamFailed(true);
+    }, 8000);
+
+    return () => {
+      if (streamFailTimerRef.current) {
+        window.clearTimeout(streamFailTimerRef.current);
+        streamFailTimerRef.current = null;
+      }
+    };
+  }, [mediaMtxStreamUrl]);
+
   return (
     <div className="dashboard-page">
       {/* 운영자가 화면 진입 직후 확인해야 하는 핵심 상태를 문장형 요약으로 제공합니다. */}
@@ -167,6 +207,75 @@ const DashboardPage = () => {
         <div className="stat-card alert">
           <h4>출동 중 드론</h4>
           <p className="stat-number">{summary?.activeDroneDispatches ?? '-'}</p>
+        </div>
+      </section>
+
+      <section className="live-stream-section">
+        <div className="section-heading">
+          <div>
+            <h2>실시간 드론 영상</h2>
+            <span>MediaMTX WebRTC</span>
+          </div>
+          {mediaMtxStreamUrl && (
+            <span className={`stream-state ${streamFailed ? 'failed' : 'live'}`}>
+              {streamFailed ? '연결 실패' : streamLoading ? '연결 중' : 'LIVE'}
+            </span>
+          )}
+        </div>
+        <div className="stream-config">
+          <label>
+            Jetson IP
+            <input
+              type="text"
+              value={jetsonIp}
+              placeholder="192.168.0.20"
+              inputMode="decimal"
+              onChange={(event) => setJetsonIp(event.target.value)}
+            />
+          </label>
+          <label>
+            Stream Path
+            <input
+              type="text"
+              value={streamPath}
+              placeholder="drone"
+              onChange={(event) => setStreamPath(event.target.value)}
+            />
+          </label>
+        </div>
+        <div className="stream-frame-wrap">
+          {mediaMtxStreamUrl ? (
+            <>
+              <iframe
+                key={mediaMtxStreamUrl}
+                title="MediaMTX 실시간 드론 영상"
+                src={mediaMtxStreamUrl}
+                allow="autoplay"
+                scrolling="no"
+                onLoad={() => {
+                  if (streamFailTimerRef.current) {
+                    window.clearTimeout(streamFailTimerRef.current);
+                    streamFailTimerRef.current = null;
+                  }
+                  setStreamLoading(false);
+                  setStreamFailed(false);
+                }}
+                onError={() => {
+                  if (streamFailTimerRef.current) {
+                    window.clearTimeout(streamFailTimerRef.current);
+                    streamFailTimerRef.current = null;
+                  }
+                  setStreamLoading(false);
+                  setStreamFailed(true);
+                }}
+              />
+              {streamFailed && (
+                <div className="stream-fallback">실시간 영상을 불러올 수 없습니다.</div>
+              )}
+            </>
+          ) : (
+            <div className="stream-empty">Jetson IP를 입력하면 실시간 영상이 표시됩니다.</div>
+          )}
         </div>
       </section>
 

@@ -85,6 +85,53 @@
   font-size: 1.4rem;
 }
 
+.equipment-heart-rate-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--surface-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.equipment-heart-rate-panel span {
+  color: var(--success-color);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.equipment-heart-rate-panel h2 {
+  margin: var(--spacing-xs) 0;
+  font-size: 1.55rem;
+}
+
+.equipment-heart-rate-panel p {
+  margin: 0;
+  color: var(--muted-color);
+}
+
+.heart-rate-risk {
+  flex: 0 0 auto;
+  padding: 7px 12px;
+  border-radius: 999px;
+  color: var(--success-color);
+  background: var(--success-soft);
+  font-size: 0.82rem;
+}
+
+.heart-rate-risk--LV2 {
+  color: var(--warning-color);
+  background: var(--warning-soft);
+}
+
+.heart-rate-risk--LV3 {
+  color: var(--danger-color);
+  background: var(--danger-soft);
+}
+
 .equipment-workspace {
   display: grid;
   grid-template-columns: minmax(360px, 0.92fr) minmax(520px, 1.08fr);
@@ -391,6 +438,32 @@
   margin: 0 0 4px;
 }
 
+.equipment-heart-rate-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-color);
+}
+
+.equipment-heart-rate-form h3,
+.equipment-heart-rate-form button {
+  grid-column: 1 / -1;
+}
+
+.equipment-heart-rate-form h3 {
+  margin: 0;
+}
+
+.equipment-heart-rate-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted-color);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
 .equipment-command-row {
   display: flex;
   align-items: center;
@@ -525,6 +598,11 @@
     flex-direction: column;
   }
 
+  .equipment-heart-rate-panel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .equipment-workspace,
   .equipment-summary-grid {
     grid-template-columns: 1fr;
@@ -556,7 +634,8 @@
 
   .equipment-row,
   .equipment-info-grid,
-  .equipment-command-form {
+  .equipment-command-form,
+  .equipment-heart-rate-form {
     grid-template-columns: 1fr;
   }
 

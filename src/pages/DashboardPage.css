@@ -156,10 +156,107 @@
 
 .workers-section h2,
 .recent-alerts-section h2,
-.priority-section h2 {
+.priority-section h2,
+.live-stream-section h2 {
   margin: var(--spacing-sm) 0 var(--spacing-md) 0;
   font-size: 1.25rem;
   color: var(--dark-color);
+}
+
+.live-stream-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+}
+
+.stream-state {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--success-soft);
+  color: var(--success-color);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.stream-state.failed {
+  background: var(--danger-soft);
+  color: var(--danger-color);
+}
+
+.stream-config {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-md);
+}
+
+.stream-config label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--muted-color);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.stream-config input {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--light-color);
+  color: var(--dark-color);
+  font: inherit;
+}
+
+.stream-config input:focus {
+  outline: 2px solid var(--primary-soft);
+  border-color: var(--primary-color);
+  background: var(--surface-color);
+}
+
+.stream-frame-wrap {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: #0f172a;
+}
+
+.stream-frame-wrap iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.stream-fallback,
+.stream-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  padding: var(--spacing-lg);
+  color: var(--muted-color);
+  text-align: center;
+  font-weight: 800;
+}
+
+.stream-fallback {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.86);
+  color: #ffffff;
 }
 
 .priority-section {
@@ -308,7 +405,8 @@
 
   .stats-section,
   .workers-grid,
-  .priority-list {
+  .priority-list,
+  .stream-config {
     grid-template-columns: 1fr;
   }
 

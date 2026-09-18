@@ -1,4 +1,4 @@
-import { iotAPI, riskEventAPI, tokenStorage } from './api';
+import { iotAPI, riskEventAPI } from './api';
 
 const jsonResponse = (data, code = '200') => Promise.resolve({
   ok: true,
@@ -9,7 +9,6 @@ const jsonResponse = (data, code = '200') => Promise.resolve({
 describe('FE to BE MVP API contract', () => {
   beforeEach(() => {
     localStorage.clear();
-    tokenStorage.setTokens({ accessToken: 'integration-token' });
     global.fetch = jest.fn(() => jsonResponse({}));
   });
 
@@ -22,7 +21,6 @@ describe('FE to BE MVP API contract', () => {
       workerId: 1,
       equipmentId: 101,
       pressureValue: 4095,
-      measuredAt: '2026-07-24T10:00:00',
     });
 
     expect(global.fetch).toHaveBeenNthCalledWith(
@@ -31,14 +29,12 @@ describe('FE to BE MVP API contract', () => {
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({
-          Authorization: 'Bearer integration-token',
           'Content-Type': 'application/json',
         }),
         body: JSON.stringify({
           workerId: 1,
           equipmentId: 101,
           pressureValue: 4095,
-          measuredAt: '2026-07-24T10:00:00',
         }),
       }),
     );
@@ -48,7 +44,6 @@ describe('FE to BE MVP API contract', () => {
       equipmentId: 103,
       buttonValue: 1,
       message: 'SOS',
-      measuredAt: '2026-07-24T10:01:00',
     });
 
     expect(global.fetch).toHaveBeenNthCalledWith(

@@ -6,7 +6,7 @@ import { WorkerProvider } from './context/WorkerContext';
 import { AlertProvider } from './context/AlertContext';
 import { SensorProvider } from './context/SensorContext';
 import { ThemeProvider } from './context/ThemeContext';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
 import { RealtimeProvider } from './context/RealtimeContext';
 
 import Header from './components/common/Header';
@@ -19,10 +19,8 @@ import EquipmentPage from './pages/EquipmentPage';
 import DroneManagementPage from './pages/DroneManagementPage';
 import AlertsPage from './pages/AlertsPage';
 import SettingsPage from './pages/SettingsPage';
-import LoginPage from './pages/LoginPage';
 
 function AuthenticatedApp() {
-  const { loading, user } = useAuth();
   // currentPage는 별도 라우터를 쓰지 않는 현재 구조에서 화면 전환의 단일 기준입니다.
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
@@ -60,8 +58,9 @@ function AuthenticatedApp() {
     }
   };
 
-  if (loading) return <div className="loading">인증 정보를 확인하는 중...</div>;
-  if (!user) return <LoginPage />;
+  // TODO: MVP 현장 테스트 동안 로그인 화면을 임시 우회합니다.
+  // if (loading) return <div className="loading">인증 정보를 확인하는 중...</div>;
+  // if (!user) return <LoginPage />;
 
   return (
       <RealtimeProvider>
