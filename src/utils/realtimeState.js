@@ -75,21 +75,33 @@ export const mergeWorkerSensor = (workers, sensor) => {
   const type = sensor.equipment?.type ?? sensor.equipmentType;
   const key = equipmentStatusKey(type);
   const workerId = sensorWorkerId(sensor);
-  if (workerId == null || !key || wearStatus == null) return workers;
+  if (workerId == null) return workers;
 
   return workers.map((worker) => {
     if (!idsEqual(worker.id, workerId)) return worker;
 
+    const sensorData = {
+      ...(worker.sensorData || {}),
+      heartRate: sensor.bpm ?? worker.sensorData?.heartRate,
+      temperature: sensor.bodyTemperature ?? worker.sensorData?.temperature,
+      latitude: sensor.latitude ?? worker.sensorData?.latitude,
+      longitude: sensor.longitude ?? worker.sensorData?.longitude,
+      equipmentStatus: {
+        ...EQUIPMENT_STATUS_DEFAULTS,
+        ...(worker.sensorData?.equipmentStatus || {}),
+      },
+    };
+
+    if (key && wearStatus != null) {
+      sensorData.equipmentStatus[key] = wearStatus === 'WORN';
+    }
+
     return {
       ...worker,
-      sensorData: {
-        ...(worker.sensorData || {}),
-        equipmentStatus: {
-          ...EQUIPMENT_STATUS_DEFAULTS,
-          ...(worker.sensorData?.equipmentStatus || {}),
-          [key]: wearStatus === 'WORN',
-        },
-      },
+      location: sensor.latitude != null && sensor.longitude != null
+        ? { lat: sensor.latitude, lng: sensor.longitude }
+        : worker.location,
+      sensorData,
       lastUpdate: new Date(sensor.measuredAt || Date.now()),
     };
   });

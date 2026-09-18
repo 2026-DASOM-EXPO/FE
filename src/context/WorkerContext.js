@@ -23,8 +23,10 @@ const normalizeWorker = (worker, sensorData, equipmentStatus) => ({
   sensorData: {
     ...(worker.sensorData || {}),
     ...(sensorData || {}),
-    heartRate: sensorData?.bpm ?? worker.sensorData?.heartRate,
-    temperature: sensorData?.bodyTemperature ?? worker.sensorData?.temperature,
+    heartRate: sensorData?.bpm ?? sensorData?.heartRate ?? worker.sensorData?.heartRate,
+    temperature: sensorData?.bodyTemperature ?? sensorData?.temperature ?? worker.sensorData?.temperature,
+    latitude: sensorData?.latitude ?? worker.sensorData?.latitude,
+    longitude: sensorData?.longitude ?? worker.sensorData?.longitude,
     equipmentStatus: sensorData?.equipmentStatus ?? equipmentStatus ?? worker.sensorData?.equipmentStatus,
   },
   lastUpdate: new Date(sensorData?.measuredAt || worker.updatedAt || worker.createdAt || Date.now()),
@@ -63,6 +65,13 @@ export const WorkerProvider = ({ children }) => {
           ? current.map((item) => idsEqual(item.id, worker.id) ? normalized : item)
           : [normalized, ...current];
       });
+      sensorAPI.getLatest(worker.id).then((result) => {
+        if (!result.success || !result.data) return;
+        setWorkers((current) => mergeWorkerSensor(current, result.data));
+        setSelectedWorker((current) => current
+          ? mergeWorkerSensor([current], result.data)[0]
+          : current);
+      });
     });
     const unsubscribeWorkerDeleted = subscribe('worker-deleted', ({ id }) => {
       setWorkers((current) => current.filter((worker) => !idsEqual(worker.id, id)));
@@ -97,6 +106,14 @@ export const WorkerProvider = ({ children }) => {
       equipmentAPI.getAll(),
     ]);
     if (result.success) {
+      const workerList = result.data || [];
+      const sensorResults = await Promise.all(workerList.map(async (worker) => ({
+        workerId: worker.id,
+        result: await sensorAPI.getLatest(worker.id),
+      })));
+      const latestSensorByWorker = Object.fromEntries(sensorResults.flatMap(({ workerId, result: sensorResult }) =>
+        sensorResult.success && sensorResult.data ? [[workerId, sensorResult.data]] : []
+      ));
       const equipmentByWorker = (equipmentResult.success ? equipmentResult.data : []).reduce((acc, item) => {
         const workerId = item.worker?.id;
         if (!workerId) return acc;
@@ -111,8 +128,8 @@ export const WorkerProvider = ({ children }) => {
         };
         return acc;
       }, {});
-      setWorkers((result.data || []).map((worker) =>
-        normalizeWorker(worker, null, equipmentByWorker[worker.id] || {
+      setWorkers(workerList.map((worker) =>
+        normalizeWorker(worker, latestSensorByWorker[worker.id], equipmentByWorker[worker.id] || {
           helmet: false,
           safeSuit: false,
           safeShoes: false,

@@ -3,10 +3,13 @@ const API_BASE_URL = (process.env.REACT_APP_API_URL || 'http://localhost:8080/ap
 const TOKEN_KEY = 'worksafe_access_token';
 const REFRESH_TOKEN_KEY = 'worksafe_refresh_token';
 
+const AUTH_DISABLED = true;
+
 export const tokenStorage = {
-  getAccessToken: () => localStorage.getItem(TOKEN_KEY),
-  getRefreshToken: () => localStorage.getItem(REFRESH_TOKEN_KEY),
+  getAccessToken: () => (AUTH_DISABLED ? null : localStorage.getItem(TOKEN_KEY)),
+  getRefreshToken: () => (AUTH_DISABLED ? null : localStorage.getItem(REFRESH_TOKEN_KEY)),
   setTokens: ({ accessToken, refreshToken }) => {
+    if (AUTH_DISABLED) return;
     if (accessToken) localStorage.setItem(TOKEN_KEY, accessToken);
     if (refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
   },
@@ -15,6 +18,10 @@ export const tokenStorage = {
     localStorage.removeItem(REFRESH_TOKEN_KEY);
   },
 };
+
+if (AUTH_DISABLED && typeof localStorage !== 'undefined') {
+  tokenStorage.clear();
+}
 
 const queryString = (params = {}) => {
   const query = new URLSearchParams();
@@ -27,10 +34,8 @@ const queryString = (params = {}) => {
 
 export const apiRequest = async (endpoint, options = {}) => {
   const { method = 'GET', data, signal, headers: customHeaders } = options;
-  const token = tokenStorage.getAccessToken();
   const headers = { Accept: 'application/json', ...customHeaders };
   if (data !== undefined) headers['Content-Type'] = 'application/json';
-  if (token) headers.Authorization = `Bearer ${token}`;
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -162,6 +167,7 @@ export const droneDropAPI = {
 
 export const iotAPI = {
   biometrics: (data) => post('/iot/biometrics', data),
+  heart: (data) => post('/iot/heart', data),
   imu: (data) => post('/iot/imu', data),
   gps: (data) => post('/iot/gps', data),
   equipmentStatus: (data) => post('/iot/equipment-status', data),
@@ -216,12 +222,10 @@ export const subscribeToRealtime = (handlers = {}, onStatus) => {
     while (!stopped) {
       try {
         onStatus?.('connecting');
-        const token = tokenStorage.getAccessToken();
         const response = await fetch(alertAPI.streamUrl(), {
           method: 'GET',
           headers: {
             Accept: 'text/event-stream',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           cache: 'no-store',
           signal: controller.signal,
