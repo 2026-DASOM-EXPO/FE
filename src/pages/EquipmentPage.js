@@ -59,6 +59,15 @@ const realtimeDescription = (type, data = {}) => {
     if (data.latitude != null && data.longitude != null) {
       return `GPS · ${data.latitude}, ${data.longitude}`;
     }
+    if (data.accelX != null || data.gyroX != null) {
+      const acceleration = [data.accelX, data.accelY, data.accelZ]
+        .map((value) => value ?? '-')
+        .join(', ');
+      const gyroscope = [data.gyroX, data.gyroY, data.gyroZ]
+        .map((value) => value ?? '-')
+        .join(', ');
+      return `IMU · 가속도 ${acceleration} · 자이로 ${gyroscope}`;
+    }
     const value = data.pressureValue ?? (data.sosPressed == null ? '-' : Number(data.sosPressed));
     return `${data.equipment?.type || data.sensorType || '센서'} · 값 ${value} · ${data.wearStatus || data.riskLevel || '-'}`;
   }

@@ -28,6 +28,14 @@ const detectedWearStatus = (sensor = {}) => {
   return ['WORN', 'NOT_WORN', 'UNKNOWN'].includes(wearStatus) ? wearStatus : null;
 };
 
+const latestDate = (...values) => {
+  const timestamps = values
+    .map((value) => new Date(value).getTime())
+    .filter((value) => Number.isFinite(value));
+  if (timestamps.length === 0) return new Date();
+  return new Date(Math.max(...timestamps));
+};
+
 export const mergeEquipmentSensor = (equipmentList, sensor) => {
   const equipmentId = sensorEquipmentId(sensor);
   if (equipmentId == null) return equipmentList;
@@ -102,7 +110,7 @@ export const mergeWorkerSensor = (workers, sensor) => {
         ? { lat: sensor.latitude, lng: sensor.longitude }
         : worker.location,
       sensorData,
-      lastUpdate: new Date(sensor.measuredAt || Date.now()),
+      lastUpdate: latestDate(sensor.measuredAt, worker.lastUpdate),
     };
   });
 };

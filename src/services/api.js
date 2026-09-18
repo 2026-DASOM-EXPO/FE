@@ -167,11 +167,11 @@ export const droneDropAPI = {
 
 export const iotAPI = {
   biometrics: (data) => post('/iot/biometrics', data),
-  heart: (data) => post('/iot/heart', data),
-  imu: (data) => post('/iot/imu', data),
-  gps: (data) => post('/iot/gps', data),
-  equipmentStatus: (data) => post('/iot/equipment-status', data),
-  sos: (data) => post('/iot/sos', data),
+  heart: (data) => patch('/iot/heart', data),
+  imu: (data) => patch('/iot/imu', data),
+  gps: (data) => patch('/iot/gps', data),
+  equipmentStatus: (data) => patch('/iot/equipment-status', data),
+  sos: (data) => patch('/iot/sos', data),
   droneObstacle: (data) => post('/iot/drone-obstacle', data),
 };
 
