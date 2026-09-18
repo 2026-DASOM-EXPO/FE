@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { workerAPI, sensorAPI, equipmentAPI } from '../services/api';
 import { useRealtime } from './RealtimeContext';
 import {
@@ -41,6 +41,15 @@ const toRequest = (data) => ({
   currentLongitude: data.currentLongitude ?? data.location?.lng,
 });
 
+const sensorRows = (result) => {
+  if (!result.success || !result.data) return [];
+  return Array.isArray(result.data) ? result.data : [result.data];
+};
+
+const mergeSensorRows = (workerList, rows) => (
+  rows.reduce((current, sensor) => mergeWorkerSensor(current, sensor), workerList)
+);
+
 export const WorkerProvider = ({ children }) => {
   const { status: realtimeStatus, subscribe } = useRealtime();
   const [workers, setWorkers] = useState([]);
@@ -51,6 +60,15 @@ export const WorkerProvider = ({ children }) => {
   const [lastFetchedAt, setLastFetchedAt] = useState(null);
   const fetched = useRef(false);
   const inFlight = useRef(false);
+  const workerIds = useMemo(() => workers.map((worker) => worker.id).join(','), [workers]);
+
+  const fetchWorkerSensors = useCallback(async (workerId) => {
+    const historyResult = await sensorAPI.getHistory(workerId);
+    if (historyResult.success) return sensorRows(historyResult);
+
+    const latestResult = await sensorAPI.getLatest(workerId);
+    return sensorRows(latestResult);
+  }, []);
 
   useEffect(() => {
     const unsubscribeWorker = subscribe('worker', (worker) => {
@@ -65,11 +83,11 @@ export const WorkerProvider = ({ children }) => {
           ? current.map((item) => idsEqual(item.id, worker.id) ? normalized : item)
           : [normalized, ...current];
       });
-      sensorAPI.getLatest(worker.id).then((result) => {
-        if (!result.success || !result.data) return;
-        setWorkers((current) => mergeWorkerSensor(current, result.data));
+      fetchWorkerSensors(worker.id).then((rows) => {
+        if (rows.length === 0) return;
+        setWorkers((current) => mergeSensorRows(current, rows));
         setSelectedWorker((current) => current
-          ? mergeWorkerSensor([current], result.data)[0]
+          ? mergeSensorRows([current], rows)[0]
           : current);
       });
     });
@@ -95,7 +113,7 @@ export const WorkerProvider = ({ children }) => {
       unsubscribeEquipment();
       unsubscribeSensor();
     };
-  }, [subscribe]);
+  }, [fetchWorkerSensors, subscribe]);
 
   const fetchWorkers = useCallback(async () => {
     if (inFlight.current) return;
@@ -109,11 +127,8 @@ export const WorkerProvider = ({ children }) => {
       const workerList = result.data || [];
       const sensorResults = await Promise.all(workerList.map(async (worker) => ({
         workerId: worker.id,
-        result: await sensorAPI.getLatest(worker.id),
+        rows: await fetchWorkerSensors(worker.id),
       })));
-      const latestSensorByWorker = Object.fromEntries(sensorResults.flatMap(({ workerId, result: sensorResult }) =>
-        sensorResult.success && sensorResult.data ? [[workerId, sensorResult.data]] : []
-      ));
       const equipmentByWorker = (equipmentResult.success ? equipmentResult.data : []).reduce((acc, item) => {
         const workerId = item.worker?.id;
         if (!workerId) return acc;
@@ -128,13 +143,15 @@ export const WorkerProvider = ({ children }) => {
         };
         return acc;
       }, {});
-      setWorkers(workerList.map((worker) =>
-        normalizeWorker(worker, latestSensorByWorker[worker.id], equipmentByWorker[worker.id] || {
+      const normalizedWorkers = workerList.map((worker) =>
+        normalizeWorker(worker, null, equipmentByWorker[worker.id] || {
           helmet: false,
           safeSuit: false,
           safeShoes: false,
         })
-      ));
+      );
+      const allSensorRows = sensorResults.flatMap(({ rows }) => rows);
+      setWorkers(mergeSensorRows(normalizedWorkers, allSensorRows));
       setError(null);
       setLastFetchedAt(new Date());
       fetched.current = true;
@@ -145,7 +162,23 @@ export const WorkerProvider = ({ children }) => {
     setRefreshing(false);
     inFlight.current = false;
     return result;
-  }, []);
+  }, [fetchWorkerSensors]);
+
+  useEffect(() => {
+    if (!workerIds) return undefined;
+    const intervalId = window.setInterval(async () => {
+      const ids = workerIds.split(',').filter(Boolean);
+      const rowsByWorker = await Promise.all(ids.map((workerId) => fetchWorkerSensors(workerId)));
+      const rows = rowsByWorker.flat();
+      if (rows.length === 0) return;
+      setWorkers((current) => mergeSensorRows(current, rows));
+      setSelectedWorker((current) => current
+        ? mergeSensorRows([current], rows)[0]
+        : current);
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [fetchWorkerSensors, workerIds]);
 
   useEffect(() => {
     if (realtimeStatus !== 'live') return;
@@ -157,16 +190,19 @@ export const WorkerProvider = ({ children }) => {
     if (cached) setSelectedWorker(cached);
     const [workerResult, sensorResult] = await Promise.all([
       workerAPI.getById(workerId),
-      sensorAPI.getLatest(workerId),
+      fetchWorkerSensors(workerId),
     ]);
     if (workerResult.success) {
-      const worker = normalizeWorker(workerResult.data, sensorResult.success ? sensorResult.data : null);
+      const worker = mergeSensorRows(
+        [normalizeWorker(workerResult.data)],
+        Array.isArray(sensorResult) ? sensorResult : []
+      )[0];
       setSelectedWorker(worker);
       setWorkers((prev) => prev.map((item) => item.id === worker.id ? worker : item));
       return worker;
     }
     return cached || null;
-  }, [workers]);
+  }, [fetchWorkerSensors, workers]);
 
   const addWorker = useCallback(async (data) => {
     const result = await workerAPI.create(toRequest(data));
