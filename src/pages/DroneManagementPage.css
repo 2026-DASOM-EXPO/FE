@@ -4,6 +4,113 @@
   gap: var(--spacing-lg);
 }
 
+.drone-management-page--simple .drone-stream-panel--full {
+  width: 100%;
+}
+
+.drone-battery-card {
+  display: grid;
+  gap: 4px;
+  min-width: 120px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--light-color);
+}
+
+.drone-battery-card span {
+  color: var(--muted-color);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.drone-battery-card strong {
+  color: var(--dark-color);
+  font-size: 1.25rem;
+}
+
+.drone-stream-panel .stream-config {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  gap: var(--spacing-md);
+  align-items: end;
+  margin-bottom: var(--spacing-md);
+}
+
+.drone-stream-panel .stream-config label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--muted-color);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.drone-stream-panel .stream-config input {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--light-color);
+  color: var(--dark-color);
+  font: inherit;
+}
+
+.drone-stream-panel .stream-frame-wrap {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: #0f172a;
+}
+
+.drone-stream-panel .stream-frame-wrap iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.drone-stream-panel .stream-state {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--success-soft);
+  color: var(--success-color);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.drone-stream-panel .stream-state.failed {
+  background: var(--danger-soft);
+  color: var(--danger-color);
+}
+
+.drone-stream-panel .stream-fallback,
+.drone-stream-panel .stream-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+  padding: var(--spacing-lg);
+  color: var(--muted-color);
+  text-align: center;
+  font-weight: 800;
+}
+
+.drone-stream-panel .stream-fallback {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.86);
+  color: #ffffff;
+}
+
 .drone-management-hero {
   display: flex;
   align-items: stretch;
@@ -477,7 +584,8 @@
   }
 
   .drone-management-workspace--unified .drone-management-row,
-  .drone-dispatch-summary {
+  .drone-dispatch-summary,
+  .drone-stream-panel .stream-config {
     grid-template-columns: 1fr;
   }
 }
