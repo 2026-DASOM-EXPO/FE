@@ -105,15 +105,14 @@
 .vital-value {
   font-weight: 800;
   color: var(--dark-color);
+  overflow-wrap: anywhere;
 }
 
 .worker-equipment {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
-  padding-bottom: var(--spacing-md);
-  border-bottom: 1px solid var(--border-color);
 }
 
 .equipment-item {

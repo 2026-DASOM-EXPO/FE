@@ -1,6 +1,5 @@
 import React from 'react';
 import { EQUIPMENT_LABELS, WORKER_STATUS, WORKER_STATUS_META } from '../../utils/constants';
-import { getRelativeTime } from '../../utils/helpers';
 import './WorkerDetailModal.css';
 
 /**
@@ -20,6 +19,8 @@ const WorkerDetailModal = ({ worker, onClose, onEdit, onDelete }) => {
     WORKER_STATUS_META[worker.status] || WORKER_STATUS_META[WORKER_STATUS.UNKNOWN];
   const sensorData = worker.sensorData || {};
   const equipmentStatus = sensorData.equipmentStatus || {};
+  const latitude = sensorData.latitude ?? worker.location?.lat;
+  const longitude = sensorData.longitude ?? worker.location?.lng;
   const missingEquipment = Object.entries(EQUIPMENT_LABELS)
     .filter(([key]) => !equipmentStatus[key])
     .map(([, label]) => label);
@@ -41,11 +42,11 @@ const WorkerDetailModal = ({ worker, onClose, onEdit, onDelete }) => {
               {statusMeta.label}
             </span>
             <h2>{worker.name}</h2>
-            <p>{worker.workerId} · {worker.department}</p>
+            <p>{worker.department}</p>
           </div>
           <div className="worker-modal-actions">
-            <button type="button" onClick={onEdit}>수정</button>
-            <button type="button" className="worker-delete-button" onClick={onDelete}>삭제</button>
+            {onEdit && <button type="button" onClick={onEdit}>수정</button>}
+            {onDelete && <button type="button" className="worker-delete-button" onClick={onDelete}>삭제</button>}
             <button className="modal-close-button" type="button" onClick={onClose}>닫기</button>
           </div>
         </header>
@@ -57,12 +58,24 @@ const WorkerDetailModal = ({ worker, onClose, onEdit, onDelete }) => {
             <strong>{sensorData.heartRate ?? '-'} bpm</strong>
           </div>
           <div>
-            <span>체온</span>
-            <strong>{sensorData.temperature ?? '-'}°C</strong>
+            <span>GPS</span>
+            <strong>
+              {latitude != null && longitude != null
+                ? `${latitude}, ${longitude}`
+                : '-'}
+            </strong>
           </div>
           <div>
-            <span>최근 갱신</span>
-            <strong>{getRelativeTime(worker.lastUpdate)}</strong>
+            <span>자이로센서</span>
+            <strong>
+              {[sensorData.gyroX, sensorData.gyroY, sensorData.gyroZ].some((value) => value != null)
+                ? `${sensorData.gyroX ?? '-'}, ${sensorData.gyroY ?? '-'}, ${sensorData.gyroZ ?? '-'}`
+                : '-'}
+            </strong>
+          </div>
+          <div className={`detail-metric-sos ${sensorData.sosPressed ? 'is-danger' : 'is-normal'}`}>
+            <span>SOS 버튼</span>
+            <strong>{sensorData.sosPressed ? 'Danger' : '정상'}</strong>
           </div>
         </div>
 
@@ -75,15 +88,15 @@ const WorkerDetailModal = ({ worker, onClose, onEdit, onDelete }) => {
                 key={key}
                 className={`equipment-chip ${equipmentStatus[key] ? 'equipped' : 'missing'}`}
               >
-                {label} {equipmentStatus[key] ? '착용' : '미착용'}
+                {label}
               </span>
             ))}
           </div>
-          <p className="detail-note">
-            {missingEquipment.length > 0
-              ? `즉시 확인 필요: ${missingEquipment.join(', ')}`
-              : '필수 안전장비가 모두 정상 착용 상태입니다.'}
-          </p>
+          {missingEquipment.length > 0 && (
+            <p className="detail-note">
+              즉시 확인 필요: {missingEquipment.join(', ')}
+            </p>
+          )}
         </div>
 
         {/* 실제 지도 연동 전에도 좌표와 연락처를 제공해 대응 정보를 놓치지 않게 합니다. */}
@@ -91,12 +104,6 @@ const WorkerDetailModal = ({ worker, onClose, onEdit, onDelete }) => {
           <div>
             <h3>연락처</h3>
             <p>{worker.phone}</p>
-          </div>
-          <div>
-            <h3>현재 위치</h3>
-            <p>
-              {worker.location?.lat}, {worker.location?.lng}
-            </p>
           </div>
         </div>
       </section>
