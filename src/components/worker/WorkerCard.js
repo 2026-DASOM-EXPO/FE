@@ -1,6 +1,5 @@
 import React from 'react';
 import { EQUIPMENT_LABELS, WORKER_STATUS, WORKER_STATUS_META } from '../../utils/constants';
-import { getRelativeTime } from '../../utils/helpers';
 import './WorkerCard.css';
 
 /**
@@ -54,8 +53,24 @@ const WorkerCard = ({ worker, onClick }) => {
           <span className="vital-value">{sensorData.heartRate ?? '-'} bpm</span>
         </div>
         <div className="vital">
-          <span className="vital-label">체온</span>
-          <span className="vital-value">{sensorData.temperature ?? '-'}°C</span>
+          <span className="vital-label">GPS</span>
+          <span className="vital-value">
+            {sensorData.latitude != null && sensorData.longitude != null
+              ? `${sensorData.latitude}, ${sensorData.longitude}`
+              : '-'}
+          </span>
+        </div>
+        <div className="vital">
+          <span className="vital-label">자이로센서</span>
+          <span className="vital-value">
+            {[sensorData.gyroX, sensorData.gyroY, sensorData.gyroZ].some((value) => value != null)
+              ? `${sensorData.gyroX ?? '-'}, ${sensorData.gyroY ?? '-'}, ${sensorData.gyroZ ?? '-'}`
+              : '-'}
+          </span>
+        </div>
+        <div className="vital">
+          <span className="vital-label">SOS 버튼</span>
+          <span className="vital-value">{sensorData.sosPressed ? '눌림' : '정상'}</span>
         </div>
       </div>
 
@@ -66,13 +81,9 @@ const WorkerCard = ({ worker, onClick }) => {
             key={key}
             className={`equipment-item ${equipmentStatus[key] ? 'equipped' : 'missing'}`}
           >
-            {equipmentStatus[key] ? '착용' : '미착용'} {label}
+            {label}
           </span>
         ))}
-      </div>
-
-      <div className="worker-footer">
-        <small>마지막 업데이트: {getRelativeTime(worker.lastUpdate)}</small>
       </div>
     </button>
   );

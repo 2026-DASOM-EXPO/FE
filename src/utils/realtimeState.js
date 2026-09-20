@@ -91,9 +91,15 @@ export const mergeWorkerSensor = (workers, sensor) => {
     const sensorData = {
       ...(worker.sensorData || {}),
       heartRate: sensor.bpm ?? worker.sensorData?.heartRate,
-      temperature: sensor.bodyTemperature ?? worker.sensorData?.temperature,
       latitude: sensor.latitude ?? worker.sensorData?.latitude,
       longitude: sensor.longitude ?? worker.sensorData?.longitude,
+      accelX: sensor.accelX ?? worker.sensorData?.accelX,
+      accelY: sensor.accelY ?? worker.sensorData?.accelY,
+      accelZ: sensor.accelZ ?? worker.sensorData?.accelZ,
+      gyroX: sensor.gyroX ?? worker.sensorData?.gyroX,
+      gyroY: sensor.gyroY ?? worker.sensorData?.gyroY,
+      gyroZ: sensor.gyroZ ?? worker.sensorData?.gyroZ,
+      sosPressed: sensor.sosPressed ?? worker.sensorData?.sosPressed,
       equipmentStatus: {
         ...EQUIPMENT_STATUS_DEFAULTS,
         ...(worker.sensorData?.equipmentStatus || {}),

@@ -36,7 +36,7 @@ const Header = ({
 
           {/* 제품 로고와 현재 화면 제목을 분리해 작은 화면에서는 제목만 숨길 수 있게 합니다. */}
           <h1 className="header-logo">WORKSAFE+</h1>
-          <span className="header-title">{title}</span>
+          {title && <span className="header-title">{title}</span>}
         </div>
 
         {/* 운영자가 앱이 실시간 모드인지 빠르게 확인할 수 있는 상태 영역입니다. */}
@@ -54,8 +54,6 @@ const Header = ({
               {isDarkMode ? 'Light' : 'Dark'}
             </span>
           </button>
-          <span className="system-status">LIVE</span>
-          <span className="user-info">관리자</span>
         </div>
       </div>
     </header>

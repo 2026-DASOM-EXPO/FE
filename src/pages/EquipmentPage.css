@@ -4,6 +4,24 @@
   gap: var(--spacing-lg);
 }
 
+.equipment-page--simple .workers-section,
+.equipment-page--simple .equipment-list-only {
+  padding: var(--spacing-lg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--surface-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.equipment-row--static {
+  cursor: default;
+}
+
+.equipment-row--static:hover {
+  border-color: var(--border-color);
+  background: var(--surface-color);
+}
+
 .equipment-hero {
   display: flex;
   align-items: stretch;

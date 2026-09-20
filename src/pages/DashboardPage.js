@@ -1,37 +1,67 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useWorker } from '../context/WorkerContext';
+import L from 'leaflet';
+import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 import { useAlert } from '../context/AlertContext';
-import WorkerCard from '../components/worker/WorkerCard';
+import { useWorker } from '../context/WorkerContext';
 import WorkerDetailModal from '../components/worker/WorkerDetailModal';
-import EntityModal from '../components/common/EntityModal';
-import { useRealtime } from '../context/RealtimeContext';
+import { droneAPI } from '../services/api';
 import { WORKER_STATUS } from '../utils/constants';
 import { getRelativeTime } from '../utils/helpers';
-import { dashboardAPI } from '../services/api';
 import './DashboardPage.css';
 
-/**
- * Dashboard 페이지
- * 전체 작업자 상태, 위험 작업자, 최근 알림을 한 화면에서 관제하는 첫 화면입니다.
- */
+const statusLabel = {
+  [WORKER_STATUS.NORMAL]: '정상',
+  [WORKER_STATUS.WARNING]: '주의',
+  [WORKER_STATUS.DANGER]: '위험',
+  [WORKER_STATUS.OFF_DUTY]: '근무 외',
+};
+
+const DEFAULT_LOCATION = { lat: 37.500768, lng: 126.867716, label: '현재 위치' };
+const DRONE_LOCATION = { lat: 37.500768, lng: 126.8679, label: '드론 위치' };
+
+const isDisplayableCoordinate = (lat, lng) => {
+  const nextLat = Number(lat);
+  const nextLng = Number(lng);
+  return Number.isFinite(nextLat)
+    && Number.isFinite(nextLng)
+    && !(Math.abs(nextLat) < 1 && Math.abs(nextLng) < 1);
+};
+
+const mapPositionForWorker = (worker) => {
+  const lat = Number(worker.location?.lat);
+  const lng = Number(worker.location?.lng);
+  return isDisplayableCoordinate(lat, lng)
+    ? [lat, lng]
+    : [DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng];
+};
+
+const markerIcon = (status) => L.divIcon({
+  className: `worker-leaflet-marker worker-leaflet-marker--${status || 'normal'}`,
+  html: '<span></span>',
+  iconSize: [22, 22],
+  iconAnchor: [11, 11],
+});
+
+const MapAutoFit = ({ workers }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    const points = workers
+      .filter((worker) => worker.location?.lat != null && worker.location?.lng != null)
+      .map((worker) => mapPositionForWorker(worker));
+    const nextPoints = [...points, [DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng]];
+    map.fitBounds(nextPoints, { padding: [36, 36], maxZoom: 17 });
+  }, [map, workers]);
+
+  return null;
+};
+
 const DashboardPage = () => {
-  const {
-    workers,
-    fetchWorkers,
-    loading,
-    error,
-    lastFetchedAt,
-    addWorker,
-    updateWorker,
-    deleteWorker,
-  } = useWorker();
+  const { workers } = useWorker();
   const { alerts, unreadCount } = useAlert();
-  const { status: realtimeStatus } = useRealtime();
+  const [drones, setDrones] = useState([]);
   const [selectedWorker, setSelectedWorker] = useState(null);
-  const [summary, setSummary] = useState(null);
-  const [workerModalMode, setWorkerModalMode] = useState(null);
-  const [workerForm, setWorkerForm] = useState({ name: '', department: '', phone: '', status: 'normal' });
-  const [workerBusy, setWorkerBusy] = useState(false);
   const [jetsonIp, setJetsonIp] = useState('');
   const [streamPath, setStreamPath] = useState('drone');
   const [streamFailed, setStreamFailed] = useState(false);
@@ -39,88 +69,30 @@ const DashboardPage = () => {
   const streamFailTimerRef = useRef(null);
 
   useEffect(() => {
-    fetchWorkers();
-
-    const fetchSummary = async () => {
-      const result = await dashboardAPI.getSummary();
-      if (result.success) setSummary(result.data);
+    const load = async () => {
+      const droneResult = await droneAPI.getAll();
+      if (droneResult.success) setDrones(droneResult.data || []);
     };
-    fetchSummary();
+    load();
+    const intervalId = window.setInterval(load, 5000);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
-  }, [fetchWorkers]);
+  const locatedWorkers = useMemo(() => workers.filter((worker) =>
+    worker.location?.lat != null && worker.location?.lng != null
+  ), [workers]);
 
-  useEffect(() => {
-    if (!selectedWorker) return;
-    const latest = workers.find((worker) => worker.id === selectedWorker.id);
-    if (latest) setSelectedWorker(latest);
-  }, [selectedWorker, workers]);
+  const mapCenter = useMemo(() => {
+    if (locatedWorkers.length === 0) return [DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng];
+    const positions = locatedWorkers.map((worker) => mapPositionForWorker(worker));
+    const lat = positions.reduce((sum, position) => sum + position[0], 0) / positions.length;
+    const lng = positions.reduce((sum, position) => sum + position[1], 0) / positions.length;
+    return [lat, lng];
+  }, [locatedWorkers]);
 
-  const openWorkerCreate = () => {
-    setWorkerForm({ name: '', department: '', phone: '', status: 'normal' });
-    setWorkerModalMode('create');
-  };
-
-  const openWorkerEdit = () => {
-    if (!selectedWorker) return;
-    setWorkerForm({
-      name: selectedWorker.name,
-      department: selectedWorker.department,
-      phone: selectedWorker.phone,
-      status: selectedWorker.status,
-    });
-    setWorkerModalMode('edit');
-  };
-
-  const saveWorker = async (event) => {
-    event.preventDefault();
-    setWorkerBusy(true);
-    const result = workerModalMode === 'create'
-      ? await addWorker(workerForm)
-      : await updateWorker(selectedWorker.id, workerForm);
-    setWorkerBusy(false);
-    if (result.success) {
-      setWorkerModalMode(null);
-      if (workerModalMode === 'edit') setSelectedWorker(result.data);
-    }
-  };
-
-  const removeWorker = async () => {
-    if (!selectedWorker || !window.confirm(`#${selectedWorker.id} ${selectedWorker.name} 작업자를 삭제할까요?`)) return;
-    const result = await deleteWorker(selectedWorker.id);
-    if (result.success) setSelectedWorker(null);
-  };
-
-  // 작업자 상태별 통계는 workers가 바뀔 때만 다시 계산해 불필요한 반복 연산을 줄입니다.
-  const stats = useMemo(() => ({
-    total: lastFetchedAt ? workers.length : summary?.totalWorkers ?? workers.length,
-    normal: lastFetchedAt ? workers.filter((w) => w.status === WORKER_STATUS.NORMAL).length : summary?.normalWorkers ?? 0,
-    warning: lastFetchedAt ? workers.filter((w) => w.status === WORKER_STATUS.WARNING).length : summary?.warningWorkers ?? 0,
-    danger: lastFetchedAt ? workers.filter((w) => w.status === WORKER_STATUS.DANGER).length : summary?.dangerWorkers ?? 0,
-    offDuty: workers.filter((w) => w.status === WORKER_STATUS.OFF_DUTY).length,
-    wornEquipment: workers.reduce((count, worker) => (
-      count + Object.values(worker.sensorData?.equipmentStatus || {}).filter(Boolean).length
-    ), 0),
-  }), [lastFetchedAt, summary, workers]);
-
-  // 위험/주의 작업자는 대응 우선순위가 높으므로 요약 영역과 목록 정렬에 재사용합니다.
-  const priorityWorkers = useMemo(
-    () => workers.filter((worker) =>
-      [WORKER_STATUS.DANGER, WORKER_STATUS.WARNING].includes(worker.status)
-    ),
-    [workers]
-  );
-
-  // 카드 목록은 위험 -> 주의 -> 정상 -> 근무 외 순서로 보여 현장 대응 흐름을 돕습니다.
-  const sortedWorkers = useMemo(() => {
-    const order = {
-      [WORKER_STATUS.DANGER]: 0,
-      [WORKER_STATUS.WARNING]: 1,
-      [WORKER_STATUS.NORMAL]: 2,
-      [WORKER_STATUS.OFF_DUTY]: 3,
-    };
-
-    return [...workers].sort((a, b) => (order[a.status] ?? 4) - (order[b.status] ?? 4));
-  }, [workers]);
+  const averageBattery = drones.length
+    ? Math.round(drones.reduce((sum, drone) => sum + (drone.batteryPercent || 0), 0) / drones.length)
+    : null;
 
   const mediaMtxStreamUrl = useMemo(() => {
     const trimmedIp = jetsonIp.trim();
@@ -143,7 +115,6 @@ const DashboardPage = () => {
 
     setStreamLoading(true);
     setStreamFailed(false);
-
     streamFailTimerRef.current = window.setTimeout(() => {
       setStreamLoading(false);
       setStreamFailed(true);
@@ -158,90 +129,124 @@ const DashboardPage = () => {
   }, [mediaMtxStreamUrl]);
 
   return (
-    <div className="dashboard-page">
-      {/* 운영자가 화면 진입 직후 확인해야 하는 핵심 상태를 문장형 요약으로 제공합니다. */}
-      <section className="dashboard-summary">
-        <div>
-          <span className="summary-kicker">실시간 현장 관제</span>
-          <h2>
-            위험 {stats.danger}명 · 주의 {stats.warning}명 · 미확인 알림 {summary?.unreadAlerts ?? unreadCount}건
-          </h2>
-          <p>
-            {priorityWorkers.length > 0
-              ? `${priorityWorkers[0].name} 작업자부터 우선 확인이 필요합니다.`
-              : '현재 즉시 대응이 필요한 작업자는 없습니다.'}
-          </p>
+    <div className="dashboard-page dashboard-page--unified">
+      <section className="recent-alerts-section">
+        <div className="section-heading">
+          <h2>최근 알림</h2>
+          <span>미확인 {unreadCount}건</span>
         </div>
-        <div className="summary-meta">
-          <span className={`refresh-state ${realtimeStatus === 'live' ? '' : 'refreshing'}`}>
-            {realtimeStatus === 'live' ? 'SSE LIVE' : 'SSE 연결 중'}
-          </span>
-          <span>
-            마지막 갱신: {lastFetchedAt ? getRelativeTime(lastFetchedAt) : '-'}
-          </span>
+        <div className="alerts-list">
+          {alerts.slice(0, 5).map((alert) => (
+            <div key={alert.id} className={`alert-item ${alert.severity || 'info'}`}>
+              <span className="alert-badge">{alert.severity || 'info'}</span>
+              <div className="alert-copy">
+                <strong>{alert.title}</strong>
+                <span className="alert-message">{alert.message}</span>
+              </div>
+              <time>{getRelativeTime(alert.timestamp)}</time>
+            </div>
+          ))}
+          {alerts.length === 0 && <div className="empty-state">최근 알림이 없습니다.</div>}
         </div>
       </section>
 
-      {/* 상태별 작업자 수를 한눈에 비교하는 통계 영역입니다. */}
-      <section className="stats-section">
-        <div className="stat-card">
-          <h4>전체 작업자</h4>
-          <p className="stat-number">{stats.total}</p>
+      <section className="dashboard-worker-panel">
+        <div className="section-heading">
+          <h2>작업자 상태</h2>
+          <span>{workers.length}명</span>
         </div>
-        <div className="stat-card normal">
-          <h4>정상</h4>
-          <p className="stat-number">{stats.normal}</p>
-        </div>
-        <div className="stat-card warning">
-          <h4>주의</h4>
-          <p className="stat-number">{stats.warning}</p>
-        </div>
-        <div className="stat-card danger">
-          <h4>위험</h4>
-          <p className="stat-number">{stats.danger}</p>
-        </div>
-        <div className="stat-card off-duty">
-          <h4>장비 착용</h4>
-          <p className="stat-number">{lastFetchedAt ? stats.wornEquipment : summary?.wornEquipment ?? '-'}</p>
-        </div>
-        <div className="stat-card alert">
-          <h4>출동 중 드론</h4>
-          <p className="stat-number">{summary?.activeDroneDispatches ?? '-'}</p>
+        <div className="dashboard-worker-list">
+          {workers.map((worker) => (
+            <button
+              key={worker.id}
+              type="button"
+              className={`dashboard-worker-row dashboard-worker-row--${worker.status}`}
+              onClick={() => setSelectedWorker(worker)}
+            >
+              <div>
+                <strong>{worker.name}</strong>
+                <span>{statusLabel[worker.status] || worker.status}</span>
+              </div>
+              <div>
+                <span>{worker.sensorData?.heartRate ?? '-'} bpm</span>
+                <span>{worker.location?.lat != null ? `${worker.location.lat}, ${worker.location.lng}` : 'GPS 대기'}</span>
+              </div>
+            </button>
+          ))}
         </div>
       </section>
 
-      <section className="live-stream-section">
+      <section className="dashboard-map-panel">
+        <div className="section-heading">
+          <div>
+            <h2>작업자/드론 위치</h2>
+            <span>실시간 GPS 지도</span>
+          </div>
+          <span className="map-count">{locatedWorkers.length}명 표시</span>
+        </div>
+        <div className="leaflet-map-wrap">
+          <MapContainer center={mapCenter} zoom={15} scrollWheelZoom className="worker-map">
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <MapAutoFit workers={locatedWorkers} />
+            {locatedWorkers.map((worker) => {
+              const position = mapPositionForWorker(worker);
+              return (
+                <Marker
+                  key={worker.id}
+                  position={position}
+                  icon={markerIcon('worker')}
+                >
+                  <Popup>
+                    <strong>{worker.name}</strong>
+                    <br />
+                    {statusLabel[worker.status] || worker.status}
+                    <br />
+                    {position[0]}, {position[1]}
+                  </Popup>
+                </Marker>
+              );
+            })}
+            <Marker
+              position={[DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng]}
+              icon={markerIcon('current')}
+            >
+              <Popup>
+                <strong>{DEFAULT_LOCATION.label}</strong>
+                <br />
+                {DEFAULT_LOCATION.lat}, {DEFAULT_LOCATION.lng}
+              </Popup>
+            </Marker>
+            <Marker
+              position={[DRONE_LOCATION.lat, DRONE_LOCATION.lng]}
+              icon={markerIcon('drone')}
+            >
+              <Popup>
+                <strong>{DRONE_LOCATION.label}</strong>
+                <br />
+                {DRONE_LOCATION.lat}, {DRONE_LOCATION.lng}
+              </Popup>
+            </Marker>
+          </MapContainer>
+        </div>
+      </section>
+
+      <section className="dashboard-stream-panel">
         <div className="section-heading">
           <div>
             <h2>실시간 드론 영상</h2>
             <span>MediaMTX WebRTC</span>
           </div>
-          {mediaMtxStreamUrl && (
-            <span className={`stream-state ${streamFailed ? 'failed' : 'live'}`}>
-              {streamFailed ? '연결 실패' : streamLoading ? '연결 중' : 'LIVE'}
-            </span>
-          )}
+          <div className="dashboard-battery">
+            <span>배터리</span>
+            <strong>{averageBattery == null ? '-' : `${averageBattery}%`}</strong>
+          </div>
         </div>
         <div className="stream-config">
-          <label>
-            Jetson IP
-            <input
-              type="text"
-              value={jetsonIp}
-              placeholder="192.168.0.20"
-              inputMode="decimal"
-              onChange={(event) => setJetsonIp(event.target.value)}
-            />
-          </label>
-          <label>
-            Stream Path
-            <input
-              type="text"
-              value={streamPath}
-              placeholder="drone"
-              onChange={(event) => setStreamPath(event.target.value)}
-            />
-          </label>
+          <label>Jetson IP<input value={jetsonIp} placeholder="192.168.0.20" onChange={(event) => setJetsonIp(event.target.value)} /></label>
+          <label>Stream Path<input value={streamPath} placeholder="drone" onChange={(event) => setStreamPath(event.target.value)} /></label>
         </div>
         <div className="stream-frame-wrap">
           {mediaMtxStreamUrl ? (
@@ -260,17 +265,11 @@ const DashboardPage = () => {
                   setStreamLoading(false);
                   setStreamFailed(false);
                 }}
-                onError={() => {
-                  if (streamFailTimerRef.current) {
-                    window.clearTimeout(streamFailTimerRef.current);
-                    streamFailTimerRef.current = null;
-                  }
-                  setStreamLoading(false);
-                  setStreamFailed(true);
-                }}
               />
-              {streamFailed && (
-                <div className="stream-fallback">실시간 영상을 불러올 수 없습니다.</div>
+              {(streamFailed || streamLoading) && (
+                <div className={streamFailed ? 'stream-fallback' : 'stream-loading'}>
+                  {streamFailed ? '실시간 영상을 불러올 수 없습니다.' : '연결 중'}
+                </div>
               )}
             </>
           ) : (
@@ -279,96 +278,10 @@ const DashboardPage = () => {
         </div>
       </section>
 
-      {/* 오류 메시지 */}
-      {error && <div className="error-message">{error}</div>}
-
-      {/* 최초 진입 시에는 전체 로딩, 이후 주기 갱신은 요약 배지로만 표시합니다. */}
-      {loading && <div className="loading">데이터 로딩 중...</div>}
-
-      {/* 위험/주의 작업자는 별도 영역으로 한 번 더 노출해 놓치지 않도록 합니다. */}
-      {priorityWorkers.length > 0 && (
-        <section className="priority-section">
-          <div className="section-heading">
-            <h2>우선 확인 작업자</h2>
-            <span>{priorityWorkers.length}명</span>
-          </div>
-          <div className="priority-list">
-            {priorityWorkers.map((worker) => (
-              <button
-                key={worker.id}
-                className={`priority-item ${worker.status}`}
-                type="button"
-                onClick={() => setSelectedWorker(worker)}
-              >
-                <strong>{worker.name}</strong>
-                <span>{worker.workerId}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* 작업자 카드 목록입니다. 카드를 클릭하면 상세 모달을 열어 대응 정보를 확인합니다. */}
-      <section className="workers-section">
-        <div className="section-heading">
-          <div><h2>작업자 상태 모니터링</h2><span>{workers.length}명</span></div>
-          <button type="button" className="btn-primary" onClick={openWorkerCreate}>작업자 등록</button>
-        </div>
-        <div className="workers-grid">
-          {sortedWorkers.map((worker) => (
-            <WorkerCard
-              key={worker.id}
-              worker={worker}
-              onClick={() => setSelectedWorker(worker)}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* 최근 알림에는 심각도와 발생 시간을 함께 노출합니다. */}
-      <section className="recent-alerts-section">
-        <div className="section-heading">
-          <h2>최근 알림</h2>
-          <span>최근 5건</span>
-        </div>
-        <div className="alerts-list">
-          {alerts.slice(0, 5).map((alert) => (
-            <div key={alert.id} className={`alert-item ${alert.severity || 'info'}`}>
-              <span className="alert-badge">{alert.severity || 'info'}</span>
-              <div className="alert-copy">
-                <strong>{alert.title}</strong>
-                <span className="alert-message">{alert.message}</span>
-              </div>
-              <time>{getRelativeTime(alert.timestamp)}</time>
-            </div>
-          ))}
-          {alerts.length === 0 && (
-            <div className="empty-state">최근 알림이 없습니다.</div>
-          )}
-        </div>
-      </section>
-
       <WorkerDetailModal
-        worker={selectedWorker}
+        worker={selectedWorker ? workers.find((worker) => worker.id === selectedWorker.id) || selectedWorker : null}
         onClose={() => setSelectedWorker(null)}
-        onEdit={openWorkerEdit}
-        onDelete={removeWorker}
       />
-      {workerModalMode && (
-        <EntityModal
-          title={workerModalMode === 'create' ? '작업자 등록' : `작업자 #${selectedWorker.id} 수정`}
-          description="목록 화면을 유지한 채 작업자 정보를 관리합니다."
-          onClose={() => setWorkerModalMode(null)}
-          onSubmit={saveWorker}
-          submitLabel={workerModalMode === 'create' ? '등록' : '수정'}
-          busy={workerBusy}
-        >
-          <label>이름<input required value={workerForm.name} onChange={(e) => setWorkerForm((p) => ({ ...p, name: e.target.value }))} /></label>
-          <label>소속 부서<input required value={workerForm.department} onChange={(e) => setWorkerForm((p) => ({ ...p, department: e.target.value }))} /></label>
-          <label>연락처<input required value={workerForm.phone} onChange={(e) => setWorkerForm((p) => ({ ...p, phone: e.target.value }))} /></label>
-          <label>상태<select value={workerForm.status} onChange={(e) => setWorkerForm((p) => ({ ...p, status: e.target.value }))}><option value="normal">정상</option><option value="warning">주의</option><option value="danger">위험</option><option value="off-duty">퇴근</option></select></label>
-        </EntityModal>
-      )}
     </div>
   );
 };

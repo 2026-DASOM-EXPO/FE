@@ -1,5 +1,4 @@
 import React from 'react';
-import { useAlert } from '../../context/AlertContext';
 import './Navigation.css';
 
 /**
@@ -10,14 +9,9 @@ import './Navigation.css';
  * @param {Function} onMenuChange - 메뉴 클릭 시 상위 App의 현재 페이지를 변경하는 콜백입니다.
  */
 const Navigation = ({ activeMenu, onMenuChange }) => {
-  const { unreadCount } = useAlert();
-
   // 메뉴 정의를 배열로 유지해 렌더링과 배지 표시 규칙을 한 흐름에서 처리합니다.
   const menus = [
-    { id: 'dashboard', label: 'Dashboard', icon: '⌂' },
-    { id: 'equipment', label: '안전장비 관리', icon: '◇' },
-    { id: 'drone', label: '드론 관제', icon: '△' },
-    { id: 'alerts', label: '알림', icon: '!', badge: unreadCount },
+    { id: 'dashboard', label: '대시보드', icon: '⌂' },
     { id: 'settings', label: '설정', icon: '⚙' },
   ];
 
