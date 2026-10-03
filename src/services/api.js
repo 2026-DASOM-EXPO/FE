@@ -170,8 +170,9 @@ export const iotAPI = {
   heart: (data) => patch('/iot/heart', data),
   imu: (data) => patch('/iot/imu', data),
   gps: (data) => patch('/iot/gps', data),
+  droneGps: (data) => patch('/iot/drone-gps', data),
   equipmentStatus: (data) => patch('/iot/equipment-status', data),
-  sos: (data) => patch('/iot/sos', data),
+  sos: ({ workerId, buttonValue }) => patch('/iot/sos', { workerId, buttonValue }),
   droneObstacle: (data) => post('/iot/drone-obstacle', data),
 };
 

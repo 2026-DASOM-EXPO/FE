@@ -4,8 +4,8 @@ import './DroneManagementPage.css';
 
 const DroneManagementPage = () => {
   const [drones, setDrones] = useState([]);
-  const [jetsonIp, setJetsonIp] = useState('');
-  const [streamPath, setStreamPath] = useState('drone');
+  const [jetsonIp, setJetsonIp] = useState('192.168.144.20:8889');
+  const [streamPath, setStreamPath] = useState('a8mini_h264/');
   const [streamFailed, setStreamFailed] = useState(false);
   const [streamLoading, setStreamLoading] = useState(false);
   const streamFailTimerRef = useRef(null);
@@ -28,7 +28,7 @@ const DroneManagementPage = () => {
     const trimmedIp = jetsonIp.trim();
     const normalizedPath = streamPath.trim().replace(/^\/+/, '');
     if (!trimmedIp || !normalizedPath) return '';
-    return `http://${trimmedIp}:8889/${normalizedPath}?autoplay=true&muted=true&controls=false&playsInline=true`;
+    return `http://${trimmedIp}/${normalizedPath}?autoplay=true&muted=true&controls=false&playsInline=true`;
   }, [jetsonIp, streamPath]);
 
   useEffect(() => {
@@ -48,7 +48,6 @@ const DroneManagementPage = () => {
 
     streamFailTimerRef.current = window.setTimeout(() => {
       setStreamLoading(false);
-      setStreamFailed(true);
     }, 8000);
 
     return () => {
@@ -78,7 +77,7 @@ const DroneManagementPage = () => {
             <input
               type="text"
               value={jetsonIp}
-              placeholder="192.168.0.20"
+              placeholder="192.168.144.20:8889"
               inputMode="decimal"
               onChange={(event) => setJetsonIp(event.target.value)}
             />
@@ -88,7 +87,7 @@ const DroneManagementPage = () => {
             <input
               type="text"
               value={streamPath}
-              placeholder="drone"
+              placeholder="a8mini_h264/"
               onChange={(event) => setStreamPath(event.target.value)}
             />
           </label>
@@ -124,7 +123,6 @@ const DroneManagementPage = () => {
                   setStreamFailed(true);
                 }}
               />
-              {streamFailed && <div className="stream-fallback">실시간 영상을 불러올 수 없습니다.</div>}
             </>
           ) : (
             <div className="stream-empty">Jetson IP를 입력하면 실시간 영상이 표시됩니다.</div>
