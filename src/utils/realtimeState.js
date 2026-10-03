@@ -28,6 +28,23 @@ const detectedWearStatus = (sensor = {}) => {
   return ['WORN', 'NOT_WORN', 'UNKNOWN'].includes(wearStatus) ? wearStatus : null;
 };
 
+// 백엔드는 센서 종류별 로그를 따로 보내며, SOS가 아닌 로그도 sosPressed: false를 기본값으로 담습니다.
+// SOS 로그의 값만 반영해야 착용/생체 로그가 SOS 상태를 덮어쓰지 않습니다.
+const sensorSosPressed = (sensor = {}, previous) => {
+  if (sensor.sensorType) return sensor.sensorType === 'SOS' ? sensor.sosPressed ?? previous : previous;
+  return sensor.sosPressed ?? previous;
+};
+
+const sensorTime = (sensor = {}) => {
+  const time = new Date(sensor.measuredAt || sensor.createdAt).getTime();
+  return Number.isFinite(time) ? time : 0;
+};
+
+// 이력 API는 최신순으로 내려오므로, 오래된 로그부터 병합해 최신 값이 마지막에 남게 합니다.
+export const sortSensorRowsByTime = (rows = []) => (
+  [...rows].sort((left, right) => sensorTime(left) - sensorTime(right))
+);
+
 const latestDate = (...values) => {
   const timestamps = values
     .map((value) => new Date(value).getTime())
@@ -99,7 +116,7 @@ export const mergeWorkerSensor = (workers, sensor) => {
       gyroX: sensor.gyroX ?? worker.sensorData?.gyroX,
       gyroY: sensor.gyroY ?? worker.sensorData?.gyroY,
       gyroZ: sensor.gyroZ ?? worker.sensorData?.gyroZ,
-      sosPressed: sensor.sosPressed ?? worker.sensorData?.sosPressed,
+      sosPressed: sensorSosPressed(sensor, worker.sensorData?.sosPressed),
       equipmentStatus: {
         ...EQUIPMENT_STATUS_DEFAULTS,
         ...(worker.sensorData?.equipmentStatus || {}),

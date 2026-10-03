@@ -6,6 +6,7 @@ import {
   idsEqual,
   mergeWorkerEquipment,
   mergeWorkerSensor,
+  sortSensorRowsByTime,
 } from '../utils/realtimeState';
 
 const WorkerContext = createContext(null);
@@ -47,7 +48,7 @@ const sensorRows = (result) => {
 };
 
 const mergeSensorRows = (workerList, rows) => (
-  rows.reduce((current, sensor) => mergeWorkerSensor(current, sensor), workerList)
+  sortSensorRowsByTime(rows).reduce((current, sensor) => mergeWorkerSensor(current, sensor), workerList)
 );
 
 export const WorkerProvider = ({ children }) => {

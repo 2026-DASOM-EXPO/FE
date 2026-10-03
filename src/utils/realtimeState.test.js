@@ -2,6 +2,7 @@ import {
   mergeEquipmentSensor,
   mergeWorkerEquipment,
   mergeWorkerSensor,
+  sortSensorRowsByTime,
 } from './realtimeState';
 
 describe('realtime sensor state synchronization', () => {
@@ -94,5 +95,36 @@ describe('realtime sensor state synchronization', () => {
     });
 
     expect(updated).toBe(workers);
+  });
+
+  test('keeps SOS pressed when a non-SOS sensor log carries sosPressed false', () => {
+    const workers = [{ id: 1, sensorData: { sosPressed: true } }];
+
+    const updated = mergeWorkerSensor(workers, {
+      worker: { id: 1 },
+      equipment: { id: 11, type: 'HELMET' },
+      sensorType: 'WEAR_STATUS',
+      wearStatus: 'WORN',
+      sosPressed: false,
+    });
+
+    expect(updated[0].sensorData.sosPressed).toBe(true);
+  });
+
+  test('applies the latest SOS log after sorting history rows by time', () => {
+    const history = [
+      { workerId: 1, sensorType: 'WEAR_STATUS', sosPressed: false, measuredAt: '2026-10-03T08:31:54' },
+      { workerId: 1, sensorType: 'MOTION', sosPressed: false, measuredAt: '2026-10-03T08:20:26' },
+      { workerId: 1, sensorType: 'SOS', sosPressed: true, measuredAt: '2026-10-03T06:15:02' },
+    ];
+
+    const sorted = sortSensorRowsByTime(history);
+    expect(sorted.map((row) => row.sensorType)).toEqual(['SOS', 'MOTION', 'WEAR_STATUS']);
+
+    const updated = sorted.reduce(
+      (current, sensor) => mergeWorkerSensor(current, sensor),
+      [{ id: 1, sensorData: {} }]
+    );
+    expect(updated[0].sensorData.sosPressed).toBe(true);
   });
 });
