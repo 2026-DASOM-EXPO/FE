@@ -1,5 +1,7 @@
 import { iotAPI, riskEventAPI } from './api';
 
+const API_BASE_URL = (process.env.REACT_APP_API_URL || 'http://localhost:8080/api').replace(/\/$/, '');
+
 const jsonResponse = (data, code = '200') => Promise.resolve({
   ok: true,
   status: Number(code),
@@ -25,9 +27,9 @@ describe('FE to BE MVP API contract', () => {
 
     expect(global.fetch).toHaveBeenNthCalledWith(
       1,
-      'http://localhost:8080/api/iot/equipment-status',
+      `${API_BASE_URL}/iot/equipment-status`,
       expect.objectContaining({
-        method: 'POST',
+        method: 'PATCH',
         headers: expect.objectContaining({
           'Content-Type': 'application/json',
         }),
@@ -41,17 +43,19 @@ describe('FE to BE MVP API contract', () => {
 
     await iotAPI.sos({
       workerId: 1,
-      equipmentId: 103,
       buttonValue: 1,
+      equipmentId: 103,
+      latitude: 37.5665,
+      longitude: 126.978,
       message: 'SOS',
     });
 
     expect(global.fetch).toHaveBeenNthCalledWith(
       2,
-      'http://localhost:8080/api/iot/sos',
+      `${API_BASE_URL}/iot/sos`,
       expect.objectContaining({
-        method: 'POST',
-        body: expect.stringContaining('"buttonValue":1'),
+        method: 'PATCH',
+        body: JSON.stringify({ workerId: 1, buttonValue: 1 }),
       }),
     );
   });
@@ -60,7 +64,7 @@ describe('FE to BE MVP API contract', () => {
     await riskEventAPI.updateStatus(7001, 'PROCESSING');
     expect(global.fetch).toHaveBeenNthCalledWith(
       1,
-      'http://localhost:8080/api/risk-events/7001/status',
+      `${API_BASE_URL}/risk-events/7001/status`,
       expect.objectContaining({
         method: 'PATCH',
         body: JSON.stringify({ status: 'PROCESSING' }),
@@ -70,7 +74,7 @@ describe('FE to BE MVP API contract', () => {
     await riskEventAPI.getReports({ workerId: 1 });
     expect(global.fetch).toHaveBeenNthCalledWith(
       2,
-      'http://localhost:8080/api/events/risk?workerId=1',
+      `${API_BASE_URL}/events/risk?workerId=1`,
       expect.objectContaining({ method: 'GET' }),
     );
   });

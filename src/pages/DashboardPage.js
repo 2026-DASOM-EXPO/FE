@@ -6,6 +6,7 @@ import { useAlert } from '../context/AlertContext';
 import { useWorker } from '../context/WorkerContext';
 import WorkerDetailModal from '../components/worker/WorkerDetailModal';
 import { droneAPI } from '../services/api';
+import { useRealtime } from '../context/RealtimeContext';
 import { WORKER_STATUS } from '../utils/constants';
 import { getRelativeTime } from '../utils/helpers';
 import './DashboardPage.css';
@@ -19,6 +20,13 @@ const statusLabel = {
 
 const DEFAULT_LOCATION = { lat: 37.500768, lng: 126.867716, label: '현재 위치' };
 const DRONE_LOCATION = { lat: 37.500768, lng: 126.8679, label: '드론 위치' };
+
+const normalizeDrone = (drone) => ({
+  ...drone,
+  location: drone.currentLatitude != null && drone.currentLongitude != null
+    ? { lat: Number(drone.currentLatitude), lng: Number(drone.currentLongitude) }
+    : null,
+});
 
 const isDisplayableCoordinate = (lat, lng) => {
   const nextLat = Number(lat);
@@ -43,16 +51,19 @@ const markerIcon = (status) => L.divIcon({
   iconAnchor: [11, 11],
 });
 
-const MapAutoFit = ({ workers }) => {
+const MapAutoFit = ({ workers, drones }) => {
   const map = useMap();
 
   useEffect(() => {
     const points = workers
       .filter((worker) => worker.location?.lat != null && worker.location?.lng != null)
       .map((worker) => mapPositionForWorker(worker));
-    const nextPoints = [...points, [DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng]];
+    const dronePoints = drones
+      .filter((drone) => isDisplayableCoordinate(drone.location?.lat, drone.location?.lng))
+      .map((drone) => [drone.location.lat, drone.location.lng]);
+    const nextPoints = [...points, ...dronePoints, [DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng]];
     map.fitBounds(nextPoints, { padding: [36, 36], maxZoom: 17 });
-  }, [map, workers]);
+  }, [drones, map, workers]);
 
   return null;
 };
@@ -60,23 +71,42 @@ const MapAutoFit = ({ workers }) => {
 const DashboardPage = () => {
   const { workers } = useWorker();
   const { alerts, unreadCount } = useAlert();
+  const { subscribe } = useRealtime();
   const [drones, setDrones] = useState([]);
   const [selectedWorker, setSelectedWorker] = useState(null);
-  const [jetsonIp, setJetsonIp] = useState('');
-  const [streamPath, setStreamPath] = useState('drone');
-  const [streamFailed, setStreamFailed] = useState(false);
+  const [jetsonIp, setJetsonIp] = useState('192.168.144.20:8889');
+  const [streamPath, setStreamPath] = useState('a8mini_h264/');
   const [streamLoading, setStreamLoading] = useState(false);
   const streamFailTimerRef = useRef(null);
 
   useEffect(() => {
     const load = async () => {
       const droneResult = await droneAPI.getAll();
-      if (droneResult.success) setDrones(droneResult.data || []);
+      if (droneResult.success) setDrones((droneResult.data || []).map(normalizeDrone));
     };
     load();
     const intervalId = window.setInterval(load, 5000);
     return () => window.clearInterval(intervalId);
   }, []);
+
+  useEffect(() => {
+    const unsubscribeDrone = subscribe('drone', (drone) => {
+      setDrones((current) => {
+        const normalized = normalizeDrone(drone);
+        const existing = current.find((item) => String(item.id) === String(normalized.id));
+        return existing
+          ? current.map((item) => String(item.id) === String(normalized.id) ? normalized : item)
+          : [normalized, ...current];
+      });
+    });
+    const unsubscribeDroneDeleted = subscribe('drone-deleted', ({ id }) => {
+      setDrones((current) => current.filter((drone) => String(drone.id) !== String(id)));
+    });
+    return () => {
+      unsubscribeDrone();
+      unsubscribeDroneDeleted();
+    };
+  }, [subscribe]);
 
   const locatedWorkers = useMemo(() => workers.filter((worker) =>
     worker.location?.lat != null && worker.location?.lng != null
@@ -94,11 +124,15 @@ const DashboardPage = () => {
     ? Math.round(drones.reduce((sum, drone) => sum + (drone.batteryPercent || 0), 0) / drones.length)
     : null;
 
+  const locatedDrones = useMemo(() => drones.filter((drone) =>
+    isDisplayableCoordinate(drone.location?.lat, drone.location?.lng)
+  ), [drones]);
+
   const mediaMtxStreamUrl = useMemo(() => {
     const trimmedIp = jetsonIp.trim();
     const normalizedPath = streamPath.trim().replace(/^\/+/, '');
     if (!trimmedIp || !normalizedPath) return '';
-    return `http://${trimmedIp}:8889/${normalizedPath}?autoplay=true&muted=true&controls=false&playsInline=true`;
+    return `http://${trimmedIp}/${normalizedPath}?autoplay=true&muted=true&controls=false&playsInline=true`;
   }, [jetsonIp, streamPath]);
 
   useEffect(() => {
@@ -109,15 +143,12 @@ const DashboardPage = () => {
 
     if (!mediaMtxStreamUrl) {
       setStreamLoading(false);
-      setStreamFailed(false);
       return undefined;
     }
 
     setStreamLoading(true);
-    setStreamFailed(false);
     streamFailTimerRef.current = window.setTimeout(() => {
       setStreamLoading(false);
-      setStreamFailed(true);
     }, 8000);
 
     return () => {
@@ -190,7 +221,7 @@ const DashboardPage = () => {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            <MapAutoFit workers={locatedWorkers} />
+            <MapAutoFit workers={locatedWorkers} drones={locatedDrones} />
             {locatedWorkers.map((worker) => {
               const position = mapPositionForWorker(worker);
               return (
@@ -219,16 +250,30 @@ const DashboardPage = () => {
                 {DEFAULT_LOCATION.lat}, {DEFAULT_LOCATION.lng}
               </Popup>
             </Marker>
-            <Marker
-              position={[DRONE_LOCATION.lat, DRONE_LOCATION.lng]}
-              icon={markerIcon('drone')}
-            >
-              <Popup>
-                <strong>{DRONE_LOCATION.label}</strong>
-                <br />
-                {DRONE_LOCATION.lat}, {DRONE_LOCATION.lng}
-              </Popup>
-            </Marker>
+            {locatedDrones.length > 0 ? locatedDrones.map((drone) => (
+              <Marker
+                key={drone.id}
+                position={[drone.location.lat, drone.location.lng]}
+                icon={markerIcon('drone')}
+              >
+                <Popup>
+                  <strong>{drone.name || DRONE_LOCATION.label}</strong>
+                  <br />
+                  {drone.location.lat}, {drone.location.lng}
+                </Popup>
+              </Marker>
+            )) : (
+              <Marker
+                position={[DRONE_LOCATION.lat, DRONE_LOCATION.lng]}
+                icon={markerIcon('drone')}
+              >
+                <Popup>
+                  <strong>{DRONE_LOCATION.label}</strong>
+                  <br />
+                  {DRONE_LOCATION.lat}, {DRONE_LOCATION.lng}
+                </Popup>
+              </Marker>
+            )}
           </MapContainer>
         </div>
       </section>
@@ -245,8 +290,8 @@ const DashboardPage = () => {
           </div>
         </div>
         <div className="stream-config">
-          <label>Jetson IP<input value={jetsonIp} placeholder="192.168.0.20" onChange={(event) => setJetsonIp(event.target.value)} /></label>
-          <label>Stream Path<input value={streamPath} placeholder="drone" onChange={(event) => setStreamPath(event.target.value)} /></label>
+          <label>Jetson IP<input value={jetsonIp} placeholder="192.168.144.20:8889" onChange={(event) => setJetsonIp(event.target.value)} /></label>
+          <label>Stream Path<input value={streamPath} placeholder="a8mini_h264/" onChange={(event) => setStreamPath(event.target.value)} /></label>
         </div>
         <div className="stream-frame-wrap">
           {mediaMtxStreamUrl ? (
@@ -263,14 +308,9 @@ const DashboardPage = () => {
                     streamFailTimerRef.current = null;
                   }
                   setStreamLoading(false);
-                  setStreamFailed(false);
                 }}
               />
-              {(streamFailed || streamLoading) && (
-                <div className={streamFailed ? 'stream-fallback' : 'stream-loading'}>
-                  {streamFailed ? '실시간 영상을 불러올 수 없습니다.' : '연결 중'}
-                </div>
-              )}
+              {streamLoading && <div className="stream-loading">연결 중</div>}
             </>
           ) : (
             <div className="stream-empty">Jetson IP를 입력하면 실시간 영상이 표시됩니다.</div>
