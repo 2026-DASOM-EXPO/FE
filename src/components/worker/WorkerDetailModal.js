@@ -83,14 +83,24 @@ const WorkerDetailModal = ({ worker, onClose, onEdit, onDelete }) => {
         <div className="detail-section">
           <h3>안전장비 착용 상태</h3>
           <div className="equipment-checklist">
-            {Object.entries(EQUIPMENT_LABELS).map(([key, label]) => (
-              <span
-                key={key}
-                className={`equipment-chip ${equipmentStatus[key] ? 'equipped' : 'missing'}`}
-              >
-                {label}
-              </span>
-            ))}
+            {Object.entries(EQUIPMENT_LABELS).map(([key, label]) => {
+              const equipped = Boolean(equipmentStatus[key]);
+              return (
+                <div
+                  key={key}
+                  className={`equipment-tile ${equipped ? 'equipped' : 'missing'}`}
+                  aria-label={`${label} ${equipped ? '착용' : '미착용'}`}
+                >
+                  <span className="equipment-tile-icon" aria-hidden="true">
+                    {equipped ? '✓' : '✕'}
+                  </span>
+                  <span className="equipment-tile-label">{label}</span>
+                  <strong className="equipment-tile-status">
+                    {equipped ? '착용' : '미착용'}
+                  </strong>
+                </div>
+              );
+            })}
           </div>
           {missingEquipment.length > 0 && (
             <p className="detail-note">
