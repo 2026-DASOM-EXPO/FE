@@ -15,29 +15,13 @@ import MainLayout from './components/layout/MainLayout';
 import EmergencyDispatchController from './components/dashboard/EmergencyDispatchController';
 
 import DashboardPage from './pages/DashboardPage';
-import SettingsPage from './pages/SettingsPage';
 
 function AuthenticatedApp() {
-  // currentPage는 별도 라우터를 쓰지 않는 현재 구조에서 화면 전환의 단일 기준입니다.
-  const [currentPage, setCurrentPage] = useState('dashboard');
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
-  // 메뉴 선택 시 페이지를 바꾸고, 모바일 드로어가 열려 있었다면 함께 닫습니다.
-  const handleMenuChange = (pageId) => {
-    setCurrentPage(pageId);
+  // 현재는 대시보드만 제공하므로 메뉴 선택은 모바일 드로어만 닫습니다.
+  const handleMenuChange = () => {
     setIsMobileNavOpen(false);
-  };
-
-  // currentPage 값에 따라 실제 페이지 컴포넌트를 렌더링합니다.
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'dashboard':
-        return <DashboardPage />;
-      case 'settings':
-        return <SettingsPage />;
-      default:
-        return <DashboardPage />;
-    }
   };
 
   // TODO: MVP 현장 테스트 동안 로그인 화면을 임시 우회합니다.
@@ -61,12 +45,12 @@ function AuthenticatedApp() {
               }
               navigation={
                 <Navigation
-                  activeMenu={currentPage}
+                  activeMenu="dashboard"
                   onMenuChange={handleMenuChange}
                 />
               }
             >
-              <div className="page-content">{renderPage()}</div>
+              <div className="page-content"><DashboardPage /></div>
             </MainLayout>
             <EmergencyDispatchController />
           </SensorProvider>

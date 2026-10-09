@@ -4,8 +4,8 @@ import './DroneManagementPage.css';
 
 const DroneManagementPage = () => {
   const [drones, setDrones] = useState([]);
-  const [jetsonIp, setJetsonIp] = useState('192.168.144.20:8889');
-  const [streamPath, setStreamPath] = useState('a8mini_h264/');
+  const [jetsonIp, setJetsonIp] = useState('172.20.10.2:8889');
+  const [streamPath, setStreamPath] = useState('yolo_out/');
   const [streamFailed, setStreamFailed] = useState(false);
   const [streamLoading, setStreamLoading] = useState(false);
   const streamFailTimerRef = useRef(null);
@@ -19,10 +19,6 @@ const DroneManagementPage = () => {
     const intervalId = window.setInterval(loadDrones, 5000);
     return () => window.clearInterval(intervalId);
   }, []);
-
-  const averageBattery = drones.length
-    ? Math.round(drones.reduce((sum, drone) => sum + (drone.batteryPercent || 0), 0) / drones.length)
-    : null;
 
   const mediaMtxStreamUrl = useMemo(() => {
     const trimmedIp = jetsonIp.trim();
@@ -63,12 +59,7 @@ const DroneManagementPage = () => {
       <section className="drone-stream-panel drone-stream-panel--full">
         <div className="drone-management-detail__header">
           <div>
-            <span>실시간 드론 영상</span>
-            <h2>MediaMTX WebRTC</h2>
-          </div>
-          <div className="drone-battery-card">
-            <span>배터리</span>
-            <strong>{averageBattery == null ? '-' : `${averageBattery}%`}</strong>
+            <h2>실시간 드론 영상</h2>
           </div>
         </div>
         <div className="stream-config">
@@ -77,7 +68,7 @@ const DroneManagementPage = () => {
             <input
               type="text"
               value={jetsonIp}
-              placeholder="192.168.144.20:8889"
+              placeholder="172.20.10.2:8889"
               inputMode="decimal"
               onChange={(event) => setJetsonIp(event.target.value)}
             />
@@ -87,7 +78,7 @@ const DroneManagementPage = () => {
             <input
               type="text"
               value={streamPath}
-              placeholder="a8mini_h264/"
+              placeholder="yolo_out/"
               onChange={(event) => setStreamPath(event.target.value)}
             />
           </label>

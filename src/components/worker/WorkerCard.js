@@ -13,6 +13,7 @@ const WorkerCard = ({ worker, onClick }) => {
   const statusMeta =
     WORKER_STATUS_META[worker.status] || WORKER_STATUS_META[WORKER_STATUS.UNKNOWN];
   const sensorData = worker.sensorData || {};
+  const sosPressed = Boolean(sensorData.sosPressed);
   const equipmentStatus = sensorData.equipmentStatus || {};
   const missingEquipmentCount = Object.keys(EQUIPMENT_LABELS).filter(
     (key) => !equipmentStatus[key]
@@ -70,7 +71,9 @@ const WorkerCard = ({ worker, onClick }) => {
         </div>
         <div className="vital">
           <span className="vital-label">SOS 버튼</span>
-          <span className="vital-value">{sensorData.sosPressed ? '눌림' : '정상'}</span>
+          <span className={`vital-value sos-status ${sosPressed ? 'is-danger' : 'is-safe'}`}>
+            {sosPressed ? '위험' : '안전'}
+          </span>
         </div>
       </div>
 

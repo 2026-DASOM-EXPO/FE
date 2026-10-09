@@ -44,7 +44,6 @@ export const WORKER_STATUS_META = {
 export const EQUIPMENT_LABELS = {
   helmet: '안전모',
   safeSuit: '안전조끼',
-  safeShoes: '안전화',
 };
 
 // 알림 심각도
@@ -66,7 +65,12 @@ export const ALERT_TYPE = {
 export const EQUIPMENT_TYPES = {
   HELMET: 'helmet',
   SAFE_SUIT: 'safeSuit',
-  SAFE_SHOES: 'safeShoes',
+};
+
+// GPS 실시간 연동은 현장 테스트 전까지 주석 처리하고 아래 목데이터를 사용합니다.
+export const MOCK_GPS = {
+  worker: { lat: 37.500768, lng: 126.867716 },
+  drone: { lat: 37.500768, lng: 126.8679 },
 };
 
 // 정상 범위 (생체 신호)

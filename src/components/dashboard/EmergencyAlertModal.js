@@ -68,10 +68,10 @@ export const DroneVideoPlayer = ({ video }) => {
   return (
     <div className="emergency-video">
       <div className="emergency-video__meta">
-        <strong>드론 현장 영상</strong>
+        <strong>드론 영상</strong>
         <span>{video.width}×{video.height} · {video.frameRate}fps · {video.protocol}</span>
       </div>
-      <video ref={videoRef} controls autoPlay muted playsInline aria-label="드론 현장 영상" />
+      <video ref={videoRef} controls autoPlay muted playsInline aria-label="드론 영상" />
       {playerError && <p className="emergency-modal__error">{playerError}</p>}
     </div>
   );
@@ -87,32 +87,34 @@ const EmergencyAlertModal = ({
 }) => {
   if (!alert) return null;
 
+  const isSos = alert.type === 'sos_request';
+
   return (
     <div className="emergency-modal-backdrop" role="presentation">
-      <section className="emergency-modal" role="alertdialog" aria-modal="true" aria-labelledby="sos-modal-title">
-        <div className="emergency-modal__signal">SOS</div>
+      <section className={`emergency-modal ${video ? 'emergency-modal--video' : ''}`} role="alertdialog" aria-modal="true" aria-labelledby="sos-modal-title">
+        <div className="emergency-modal__signal">{isSos ? 'SOS' : '위험'}</div>
         <div className="emergency-modal__header">
           <div>
-            <span>LV.3 긴급 경고</span>
-            <h2 id="sos-modal-title">{alert.workerName || '작업자'} SOS 요청</h2>
+            <span>위험 경고</span>
+            <h2 id="sos-modal-title">{alert.workerName || '작업자'} {isSos ? 'SOS 요청' : '위험 감지'}</h2>
           </div>
           {video && <button type="button" className="emergency-modal__close" onClick={onClose} aria-label="경고창 닫기">×</button>}
         </div>
 
-        <p className="emergency-modal__message">{alert.message || '작업자가 SOS 버튼을 눌렀습니다.'}</p>
+        <p className="emergency-modal__message">{alert.message || (isSos ? '작업자가 SOS 버튼을 눌렀습니다.' : '작업자에게서 위험 센서값이 감지되었습니다.')}</p>
 
         {!video ? (
           <>
             <div className="emergency-modal__facts">
               <div><span>드론</span><strong>관리자 승인 대기</strong></div>
               <div><span>119 신고</span><strong>외부 신고 안 함</strong></div>
-              <div><span>영상</span><strong>출동 승인 후 시작</strong></div>
+              <div><span>영상</span><strong>확인 후 전체 화면</strong></div>
             </div>
             {error && <p className="emergency-modal__error">{error}</p>}
             <div className="emergency-modal__actions">
               <button type="button" className="emergency-modal__cancel" onClick={onClose} disabled={loading}>취소</button>
               <button type="button" className="emergency-modal__confirm" onClick={onConfirm} disabled={loading}>
-                {loading ? '출동 및 영상 연결 중...' : '출동'}
+                {loading ? '영상 연결 중...' : '확인'}
               </button>
             </div>
           </>

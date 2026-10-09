@@ -18,11 +18,12 @@ describe('FE to BE MVP API contract', () => {
     jest.restoreAllMocks();
   });
 
-  test('sends ESP32 12-bit ADC and SOS button values to the real BE paths', async () => {
+  test('sends equipment wear status and SOS button values to the real BE paths', async () => {
     await iotAPI.equipmentStatus({
       workerId: 1,
       equipmentId: 101,
-      pressureValue: 4095,
+      wearStatus: 'WORN',
+      lightValue: 300,
     });
 
     expect(global.fetch).toHaveBeenNthCalledWith(
@@ -36,7 +37,8 @@ describe('FE to BE MVP API contract', () => {
         body: JSON.stringify({
           workerId: 1,
           equipmentId: 101,
-          pressureValue: 4095,
+          wearStatus: 'WORN',
+          lightValue: 300,
         }),
       }),
     );

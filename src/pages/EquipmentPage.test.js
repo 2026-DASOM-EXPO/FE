@@ -78,13 +78,11 @@ describe('EquipmentPage realtime sensor cards', () => {
           type: 'HELMET',
         },
         sensorType: 'WEAR_STATUS',
-        pressureValue: 2200,
         wearStatus: 'WORN',
         measuredAt: '2026-07-26T21:00:00',
       });
     });
 
     expect(within(equipmentCard).getByText('착용')).toBeInTheDocument();
-    expect(screen.getByText('2200 / 4095')).toBeInTheDocument();
   });
 });
