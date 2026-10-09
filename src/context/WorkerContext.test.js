@@ -78,7 +78,6 @@ describe('WorkerContext realtime equipment state', () => {
         worker: { id: 1 },
         equipment: { id: 11, type: 'HELMET' },
         wearStatus: 'WORN',
-        pressureValue: 2200,
         measuredAt: '2026-07-26T21:00:00',
       });
     });

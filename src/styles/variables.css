@@ -278,37 +278,7 @@ textarea:focus {
     var(--light-color);
 }
 
-:root[data-theme='dark'] .settings-hero,
-:root[data-theme='dark'] .settings-hero__stats div,
-:root[data-theme='dark'] .settings-level,
-:root[data-theme='dark'] .settings-item-list,
-:root[data-theme='dark'] .settings-check-list,
-:root[data-theme='dark'] .settings-health-row,
-:root[data-theme='dark'] .settings-metric,
-:root[data-theme='dark'] .settings-worker-row,
-:root[data-theme='dark'] .settings-empty,
 :root[data-theme='dark'] .worker-modal-panel,
 :root[data-theme='dark'] .detail-metrics div {
   background: var(--surface-color);
-}
-
-:root[data-theme='dark'] .settings-detail {
-  background:
-    linear-gradient(180deg, rgba(23, 32, 51, 0.98), rgba(15, 23, 42, 0.94)),
-    var(--surface-color);
-}
-
-:root[data-theme='dark'] .settings-detail__chrome,
-:root[data-theme='dark'] .settings-category-dock__header {
-  background: rgba(15, 23, 42, 0.64);
-}
-
-:root[data-theme='dark'] .settings-category-icon,
-:root[data-theme='dark'] .settings-health-ring {
-  background: var(--surface-color);
-}
-
-:root[data-theme='dark'] .settings-item-button.is-active em,
-:root[data-theme='dark'] .settings-level h4::before {
-  background: var(--light-color);
 }

@@ -7,7 +7,7 @@ import { useWorker } from '../context/WorkerContext';
 import WorkerDetailModal from '../components/worker/WorkerDetailModal';
 import { droneAPI } from '../services/api';
 import { useRealtime } from '../context/RealtimeContext';
-import { WORKER_STATUS } from '../utils/constants';
+import { MOCK_GPS, WORKER_STATUS } from '../utils/constants';
 import { getRelativeTime } from '../utils/helpers';
 import './DashboardPage.css';
 
@@ -18,14 +18,22 @@ const statusLabel = {
   [WORKER_STATUS.OFF_DUTY]: '근무 외',
 };
 
-const DEFAULT_LOCATION = { lat: 37.500768, lng: 126.867716, label: '현재 위치' };
-const DRONE_LOCATION = { lat: 37.500768, lng: 126.8679, label: '드론 위치' };
+const alertLevel = (severity) => {
+  if (severity === 'warning') return { className: 'warning', label: '주의' };
+  if (severity === 'danger' || severity === 'emergency') return { className: 'danger', label: '위험' };
+  return { className: 'info', label: '정보' };
+};
+
+const DEFAULT_LOCATION = { ...MOCK_GPS.worker, label: '현재 위치' };
+const DRONE_LOCATION = { ...MOCK_GPS.drone, label: '드론' };
 
 const normalizeDrone = (drone) => ({
   ...drone,
-  location: drone.currentLatitude != null && drone.currentLongitude != null
-    ? { lat: Number(drone.currentLatitude), lng: Number(drone.currentLongitude) }
-    : null,
+  // 실시간 드론 GPS API 값은 현장 연동 전까지 주석 처리하고 목데이터로 고정합니다.
+  // location: drone.currentLatitude != null && drone.currentLongitude != null
+  //   ? { lat: Number(drone.currentLatitude), lng: Number(drone.currentLongitude) }
+  //   : null,
+  location: MOCK_GPS.drone,
 });
 
 const isDisplayableCoordinate = (lat, lng) => {
@@ -74,9 +82,10 @@ const DashboardPage = () => {
   const { subscribe } = useRealtime();
   const [drones, setDrones] = useState([]);
   const [selectedWorker, setSelectedWorker] = useState(null);
-  const [jetsonIp, setJetsonIp] = useState('192.168.144.20:8889');
-  const [streamPath, setStreamPath] = useState('a8mini_h264/');
+  const [jetsonIp, setJetsonIp] = useState('172.20.10.2:8889');
+  const [streamPath, setStreamPath] = useState('yolo_out/');
   const [streamLoading, setStreamLoading] = useState(false);
+  const [alertFilter, setAlertFilter] = useState('all');
   const streamFailTimerRef = useRef(null);
 
   useEffect(() => {
@@ -108,6 +117,16 @@ const DashboardPage = () => {
     };
   }, [subscribe]);
 
+  useEffect(() => {
+    const focusWorker = (event) => {
+      const workerId = event.detail?.workerId;
+      const worker = workers.find((item) => String(item.id) === String(workerId));
+      if (worker) setSelectedWorker(worker);
+    };
+    window.addEventListener('worksafe:focus-worker', focusWorker);
+    return () => window.removeEventListener('worksafe:focus-worker', focusWorker);
+  }, [workers]);
+
   const locatedWorkers = useMemo(() => workers.filter((worker) =>
     worker.location?.lat != null && worker.location?.lng != null
   ), [workers]);
@@ -120,13 +139,25 @@ const DashboardPage = () => {
     return [lat, lng];
   }, [locatedWorkers]);
 
-  const averageBattery = drones.length
-    ? Math.round(drones.reduce((sum, drone) => sum + (drone.batteryPercent || 0), 0) / drones.length)
-    : null;
-
   const locatedDrones = useMemo(() => drones.filter((drone) =>
     isDisplayableCoordinate(drone.location?.lat, drone.location?.lng)
   ), [drones]);
+
+  const displayedDrones = useMemo(() => locatedDrones.length > 0
+    ? locatedDrones
+    : [{
+      id: 'default-drone',
+      name: DRONE_LOCATION.label,
+      location: { lat: DRONE_LOCATION.lat, lng: DRONE_LOCATION.lng },
+    }], [locatedDrones]);
+
+  const filteredAlerts = useMemo(() => {
+    if (alertFilter === 'all') return alerts;
+    return alerts.filter((alert) => {
+      const level = alertLevel(alert.severity).className;
+      return level === alertFilter;
+    });
+  }, [alertFilter, alerts]);
 
   const mediaMtxStreamUrl = useMemo(() => {
     const trimmedIp = jetsonIp.trim();
@@ -164,20 +195,46 @@ const DashboardPage = () => {
       <section className="recent-alerts-section">
         <div className="section-heading">
           <h2>최근 알림</h2>
-          <span>미확인 {unreadCount}건</span>
+          <div className="alert-heading-meta">
+            <div className="alert-level-filters" aria-label="알림 단계 필터">
+              <button
+                type="button"
+                className={alertFilter === 'warning' ? 'is-active is-warning' : 'is-warning'}
+                onClick={() => setAlertFilter('warning')}
+              >
+                주의
+              </button>
+              <button
+                type="button"
+                className={alertFilter === 'danger' ? 'is-active is-danger' : 'is-danger'}
+                onClick={() => setAlertFilter('danger')}
+              >
+                위험
+              </button>
+              <button
+                type="button"
+                className={alertFilter === 'all' ? 'is-active is-all' : 'is-all'}
+                onClick={() => setAlertFilter('all')}
+              >
+                전체
+              </button>
+            </div>
+            <span>미확인 {unreadCount}건</span>
+          </div>
         </div>
         <div className="alerts-list">
-          {alerts.slice(0, 5).map((alert) => (
-            <div key={alert.id} className={`alert-item ${alert.severity || 'info'}`}>
-              <span className="alert-badge">{alert.severity || 'info'}</span>
-              <div className="alert-copy">
-                <strong>{alert.title}</strong>
-                <span className="alert-message">{alert.message}</span>
+          {filteredAlerts.map((alert) => {
+            const level = alertLevel(alert.severity);
+            return (
+              <div key={alert.id} className={`alert-item ${level.className}`}>
+                <div className="alert-copy">
+                  <strong>{alert.workerName || '작업자'}</strong>
+                </div>
+                <time>{getRelativeTime(alert.timestamp)}</time>
               </div>
-              <time>{getRelativeTime(alert.timestamp)}</time>
-            </div>
-          ))}
-          {alerts.length === 0 && <div className="empty-state">최근 알림이 없습니다.</div>}
+            );
+          })}
+          {filteredAlerts.length === 0 && <div className="empty-state">해당 알림이 없습니다.</div>}
         </div>
       </section>
 
@@ -200,7 +257,6 @@ const DashboardPage = () => {
               </div>
               <div>
                 <span>{worker.sensorData?.heartRate ?? '-'} bpm</span>
-                <span>{worker.location?.lat != null ? `${worker.location.lat}, ${worker.location.lng}` : 'GPS 대기'}</span>
               </div>
             </button>
           ))}
@@ -211,7 +267,6 @@ const DashboardPage = () => {
         <div className="section-heading">
           <div>
             <h2>작업자/드론 위치</h2>
-            <span>실시간 GPS 지도</span>
           </div>
           <span className="map-count">{locatedWorkers.length}명 표시</span>
         </div>
@@ -228,28 +283,18 @@ const DashboardPage = () => {
                 <Marker
                   key={worker.id}
                   position={position}
-                  icon={markerIcon('worker')}
+                  icon={markerIcon('danger')}
                 >
                   <Popup>
                     <strong>{worker.name}</strong>
                     <br />
                     {statusLabel[worker.status] || worker.status}
                     <br />
-                    {position[0]}, {position[1]}
+                    GPS: {position[0]}, {position[1]}
                   </Popup>
                 </Marker>
               );
             })}
-            <Marker
-              position={[DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng]}
-              icon={markerIcon('current')}
-            >
-              <Popup>
-                <strong>{DEFAULT_LOCATION.label}</strong>
-                <br />
-                {DEFAULT_LOCATION.lat}, {DEFAULT_LOCATION.lng}
-              </Popup>
-            </Marker>
             {locatedDrones.length > 0 ? locatedDrones.map((drone) => (
               <Marker
                 key={drone.id}
@@ -257,7 +302,7 @@ const DashboardPage = () => {
                 icon={markerIcon('drone')}
               >
                 <Popup>
-                  <strong>{drone.name || DRONE_LOCATION.label}</strong>
+                    <strong>드론</strong>
                   <br />
                   {drone.location.lat}, {drone.location.lng}
                 </Popup>
@@ -275,6 +320,35 @@ const DashboardPage = () => {
               </Marker>
             )}
           </MapContainer>
+          <aside className="map-gps-overlay" aria-label="작업자 및 드론 실시간 GPS">
+            <div className="map-gps-overlay__list">
+              {workers.map((worker) => (
+                <div className="map-gps-overlay__item" key={worker.id}>
+                  <span className="map-gps-overlay__worker">
+                    <i
+                      className="is-danger"
+                      aria-hidden="true"
+                    />
+                    {worker.name}
+                  </span>
+                  <span>
+                    {worker.location?.lat != null && worker.location?.lng != null
+                      ? `${worker.location.lat}, ${worker.location.lng}`
+                      : 'GPS 대기'}
+                  </span>
+                </div>
+              ))}
+              {displayedDrones.map((drone) => (
+                <div className="map-gps-overlay__item" key={`gps-drone-${drone.id}`}>
+                  <span className="map-gps-overlay__worker">
+                    <i className="is-drone" aria-hidden="true" />
+                    드론
+                  </span>
+                  <span>{drone.location.lat}, {drone.location.lng}</span>
+                </div>
+              ))}
+            </div>
+          </aside>
         </div>
       </section>
 
@@ -282,16 +356,11 @@ const DashboardPage = () => {
         <div className="section-heading">
           <div>
             <h2>실시간 드론 영상</h2>
-            <span>MediaMTX WebRTC</span>
-          </div>
-          <div className="dashboard-battery">
-            <span>배터리</span>
-            <strong>{averageBattery == null ? '-' : `${averageBattery}%`}</strong>
           </div>
         </div>
         <div className="stream-config">
-          <label>Jetson IP<input value={jetsonIp} placeholder="192.168.144.20:8889" onChange={(event) => setJetsonIp(event.target.value)} /></label>
-          <label>Stream Path<input value={streamPath} placeholder="a8mini_h264/" onChange={(event) => setStreamPath(event.target.value)} /></label>
+          <label>Jetson IP<input value={jetsonIp} placeholder="172.20.10.2:8889" onChange={(event) => setJetsonIp(event.target.value)} /></label>
+          <label>Stream Path<input value={streamPath} placeholder="yolo_out/" onChange={(event) => setStreamPath(event.target.value)} /></label>
         </div>
         <div className="stream-frame-wrap">
           {mediaMtxStreamUrl ? (
@@ -320,6 +389,7 @@ const DashboardPage = () => {
 
       <WorkerDetailModal
         worker={selectedWorker ? workers.find((worker) => worker.id === selectedWorker.id) || selectedWorker : null}
+        showGps={false}
         onClose={() => setSelectedWorker(null)}
       />
     </div>

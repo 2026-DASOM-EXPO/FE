@@ -9,7 +9,7 @@ import './WorkerDetailModal.css';
  * @param {object|null} worker - 상세로 표시할 작업자 객체입니다. null이면 렌더링하지 않습니다.
  * @param {Function} onClose - 닫기 버튼 또는 배경 클릭 시 실행할 콜백입니다.
  */
-const WorkerDetailModal = ({ worker, onClose, onEdit, onDelete }) => {
+const WorkerDetailModal = ({ worker, onClose, onEdit, onDelete, showGps = true }) => {
   // 선택된 작업자가 없을 때는 모달 DOM 자체를 만들지 않아 포커스/스크린리더 혼선을 줄입니다.
   if (!worker) {
     return null;
@@ -19,8 +19,6 @@ const WorkerDetailModal = ({ worker, onClose, onEdit, onDelete }) => {
     WORKER_STATUS_META[worker.status] || WORKER_STATUS_META[WORKER_STATUS.UNKNOWN];
   const sensorData = worker.sensorData || {};
   const equipmentStatus = sensorData.equipmentStatus || {};
-  const latitude = sensorData.latitude ?? worker.location?.lat;
-  const longitude = sensorData.longitude ?? worker.location?.lng;
   const missingEquipment = Object.entries(EQUIPMENT_LABELS)
     .filter(([key]) => !equipmentStatus[key])
     .map(([, label]) => label);
@@ -52,19 +50,21 @@ const WorkerDetailModal = ({ worker, onClose, onEdit, onDelete }) => {
         </header>
 
         {/* 현장 대응 시 가장 먼저 보는 생체 신호를 상단에 크게 배치합니다. */}
-        <div className="detail-metrics">
+        <div className={`detail-metrics ${showGps ? '' : 'detail-metrics--without-gps'}`}>
           <div>
             <span>심박수</span>
             <strong>{sensorData.heartRate ?? '-'} bpm</strong>
           </div>
-          <div>
-            <span>GPS</span>
-            <strong>
-              {latitude != null && longitude != null
-                ? `${latitude}, ${longitude}`
-                : '-'}
-            </strong>
-          </div>
+          {showGps && (
+            <div>
+              <span>GPS</span>
+              <strong>
+                {worker.location?.lat != null && worker.location?.lng != null
+                  ? `${worker.location.lat}, ${worker.location.lng}`
+                  : '-'}
+              </strong>
+            </div>
+          )}
           <div>
             <span>자이로센서</span>
             <strong>
@@ -75,7 +75,7 @@ const WorkerDetailModal = ({ worker, onClose, onEdit, onDelete }) => {
           </div>
           <div className={`detail-metric-sos ${sensorData.sosPressed ? 'is-danger' : 'is-normal'}`}>
             <span>SOS 버튼</span>
-            <strong>{sensorData.sosPressed ? 'Danger' : '정상'}</strong>
+            <strong>{sensorData.sosPressed ? '위험' : '안전'}</strong>
           </div>
         </div>
 

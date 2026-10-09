@@ -1,7 +1,8 @@
+import { MOCK_GPS } from './constants';
+
 const EQUIPMENT_STATUS_DEFAULTS = {
   helmet: false,
   safeSuit: false,
-  safeShoes: false,
 };
 
 export const idsEqual = (left, right) => (
@@ -12,7 +13,6 @@ export const equipmentStatusKey = (type) => ({
   HELMET: 'helmet',
   VEST: 'safeSuit',
   SOS_BUTTON: 'safeSuit',
-  SHOES: 'safeShoes',
 }[type]);
 
 export const sensorEquipmentId = (sensor = {}) => (
@@ -108,8 +108,12 @@ export const mergeWorkerSensor = (workers, sensor) => {
     const sensorData = {
       ...(worker.sensorData || {}),
       heartRate: sensor.bpm ?? worker.sensorData?.heartRate,
-      latitude: sensor.latitude ?? worker.sensorData?.latitude,
-      longitude: sensor.longitude ?? worker.sensorData?.longitude,
+      lightValue: sensor.lightValue ?? worker.sensorData?.lightValue,
+      // GPS 센서값 반영은 현장 연동 전까지 주석 처리하고 목데이터를 유지합니다.
+      // latitude: sensor.latitude ?? worker.sensorData?.latitude,
+      // longitude: sensor.longitude ?? worker.sensorData?.longitude,
+      latitude: MOCK_GPS.worker.lat,
+      longitude: MOCK_GPS.worker.lng,
       accelX: sensor.accelX ?? worker.sensorData?.accelX,
       accelY: sensor.accelY ?? worker.sensorData?.accelY,
       accelZ: sensor.accelZ ?? worker.sensorData?.accelZ,
@@ -129,9 +133,10 @@ export const mergeWorkerSensor = (workers, sensor) => {
 
     return {
       ...worker,
-      location: sensor.latitude != null && sensor.longitude != null
-        ? { lat: sensor.latitude, lng: sensor.longitude }
-        : worker.location,
+      // location: sensor.latitude != null && sensor.longitude != null
+      //   ? { lat: sensor.latitude, lng: sensor.longitude }
+      //   : worker.location,
+      location: MOCK_GPS.worker,
       sensorData,
       lastUpdate: latestDate(sensor.measuredAt, worker.lastUpdate),
     };

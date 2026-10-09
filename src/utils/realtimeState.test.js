@@ -17,7 +17,6 @@ describe('realtime sensor state synchronization', () => {
       equipmentId: '11',
       equipment: { id: 11, type: 'HELMET' },
       wearStatus: 'WORN',
-      pressureValue: 2200,
       measuredAt: '2026-07-26T21:00:00',
     };
 
@@ -35,7 +34,6 @@ describe('realtime sensor state synchronization', () => {
         equipmentStatus: {
           helmet: false,
           safeSuit: true,
-          safeShoes: true,
         },
       },
     }];
@@ -49,18 +47,16 @@ describe('realtime sensor state synchronization', () => {
     expect(mergeWorkerSensor(workers, sensor)[0].sensorData.equipmentStatus).toEqual({
       helmet: true,
       safeSuit: true,
-      safeShoes: true,
     });
   });
 
-  test('keeps compatibility with the separate equipment SSE event', () => {
+  test('ignores removed safety shoe equipment events', () => {
     const workers = [{
       id: 1,
       sensorData: {
         equipmentStatus: {
           helmet: true,
           safeSuit: true,
-          safeShoes: true,
         },
       },
     }];
@@ -72,7 +68,7 @@ describe('realtime sensor state synchronization', () => {
       lastDetectedAt: '2026-07-26T21:01:00',
     });
 
-    expect(updated[0].sensorData.equipmentStatus.safeShoes).toBe(false);
+    expect(updated).toEqual(workers);
   });
 
   test('does not change wear cards for an SOS event without a wear status', () => {
@@ -82,7 +78,6 @@ describe('realtime sensor state synchronization', () => {
         equipmentStatus: {
           helmet: true,
           safeSuit: true,
-          safeShoes: true,
         },
       },
     }];

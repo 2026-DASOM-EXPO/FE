@@ -49,9 +49,9 @@ test('shows manager confirmation before exposing the video', () => {
   expect(screen.getByRole('alertdialog')).toBeInTheDocument();
   expect(screen.getByText('119 신고')).toBeInTheDocument();
   expect(screen.getByText('외부 신고 안 함')).toBeInTheDocument();
-  expect(screen.queryByLabelText('드론 현장 영상')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('드론 영상')).not.toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole('button', { name: '출동' }));
+  fireEvent.click(screen.getByRole('button', { name: '확인' }));
   expect(onConfirm).toHaveBeenCalledTimes(1);
 });
 
@@ -73,7 +73,7 @@ test('renders the confirmed 720p video player', () => {
     />,
   );
 
-  expect(screen.getByLabelText('드론 현장 영상')).toBeInTheDocument();
+  expect(screen.getByLabelText('드론 영상')).toBeInTheDocument();
   expect(screen.getByText('1280×720 · 30fps · HLS')).toBeInTheDocument();
   expect(mockHlsInstances.at(-1).loadSource)
     .toHaveBeenCalledWith('http://localhost:8888/DRONE-1/index.m3u8');

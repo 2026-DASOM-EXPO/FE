@@ -10,7 +10,6 @@ import './EquipmentPage.css';
 const typeLabel = {
   HELMET: '안전모',
   VEST: '안전조끼',
-  SHOES: '안전화',
   SOS_BUTTON: 'SOS 버튼',
   BELT: '안전벨트',
   SENSOR_DEVICE: '센서 장치',
@@ -19,6 +18,7 @@ const typeLabel = {
 const statusLabel = { AVAILABLE: '사용 가능', ASSIGNED: '배정됨', LOST: '분실', BROKEN: '고장', DISCARDED: '폐기' };
 const wearLabel = { WORN: '착용', NOT_WORN: '미착용', UNKNOWN: '미확인' };
 const statusTone = { AVAILABLE: 'info', ASSIGNED: 'success', LOST: 'danger', BROKEN: 'warning', DISCARDED: 'danger' };
+const isSupportedEquipment = (item) => item?.type !== 'SHOES';
 
 const EquipmentPage = () => {
   const { workers, fetchWorkers } = useWorker();
@@ -30,6 +30,7 @@ const EquipmentPage = () => {
   const [message, setMessage] = useState('장비 정보를 불러오는 중입니다.');
 
   const upsertEquipment = useCallback((incoming) => {
+    if (!isSupportedEquipment(incoming)) return;
     setEquipment((current) => {
       const exists = current.some((item) => idsEqual(item.id, incoming.id));
       return exists
@@ -42,7 +43,7 @@ const EquipmentPage = () => {
     setLoading(true);
     const result = await equipmentAPI.getAll();
     if (result.success) {
-      const list = result.data || [];
+      const list = (result.data || []).filter(isSupportedEquipment);
       setEquipment(list);
       setMessage(`장비 ${list.length}개를 동기화했습니다.`);
       const sensorResults = await Promise.all(list.map(async (item) => ({

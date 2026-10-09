@@ -108,6 +108,14 @@
   overflow-wrap: anywhere;
 }
 
+.sos-status.is-danger {
+  color: var(--danger-color);
+}
+
+.sos-status.is-safe {
+  color: var(--success-color);
+}
+
 .worker-equipment {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

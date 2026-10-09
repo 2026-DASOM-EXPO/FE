@@ -8,6 +8,7 @@ import {
   mergeWorkerSensor,
   sortSensorRowsByTime,
 } from '../utils/realtimeState';
+import { MOCK_GPS } from '../utils/constants';
 
 const WorkerContext = createContext(null);
 const statusFromApi = { NORMAL: 'normal', WARNING: 'warning', DANGER: 'danger', INACTIVE: 'off-duty' };
@@ -18,16 +19,20 @@ const normalizeWorker = (worker, sensorData, equipmentStatus) => ({
   workerId: String(worker.id),
   phone: worker.phoneNumber,
   status: statusFromApi[worker.status] || worker.status?.toLowerCase() || 'off-duty',
-  location: worker.currentLatitude != null && worker.currentLongitude != null
-    ? { lat: worker.currentLatitude, lng: worker.currentLongitude }
-    : null,
+  // 실시간 GPS API 값은 현장 연동 전까지 주석 처리하고 목데이터로 고정합니다.
+  // location: worker.currentLatitude != null && worker.currentLongitude != null
+  //   ? { lat: worker.currentLatitude, lng: worker.currentLongitude }
+  //   : null,
+  location: MOCK_GPS.worker,
   sensorData: {
     ...(worker.sensorData || {}),
     ...(sensorData || {}),
     heartRate: sensorData?.bpm ?? sensorData?.heartRate ?? worker.sensorData?.heartRate,
     temperature: sensorData?.bodyTemperature ?? sensorData?.temperature ?? worker.sensorData?.temperature,
-    latitude: sensorData?.latitude ?? worker.sensorData?.latitude,
-    longitude: sensorData?.longitude ?? worker.sensorData?.longitude,
+    // latitude: sensorData?.latitude ?? worker.sensorData?.latitude,
+    // longitude: sensorData?.longitude ?? worker.sensorData?.longitude,
+    latitude: MOCK_GPS.worker.lat,
+    longitude: MOCK_GPS.worker.lng,
     equipmentStatus: sensorData?.equipmentStatus ?? equipmentStatus ?? worker.sensorData?.equipmentStatus,
   },
   lastUpdate: new Date(sensorData?.measuredAt || worker.updatedAt || worker.createdAt || Date.now()),
@@ -38,8 +43,9 @@ const toRequest = (data) => ({
   department: data.department,
   phoneNumber: data.phoneNumber ?? data.phone,
   status: statusToApi[data.status] || data.status,
-  currentLatitude: data.currentLatitude ?? data.location?.lat,
-  currentLongitude: data.currentLongitude ?? data.location?.lng,
+  // GPS 좌표는 목데이터 사용 기간 동안 작업자 수정 API에 보내지 않습니다.
+  // currentLatitude: data.currentLatitude ?? data.location?.lat,
+  // currentLongitude: data.currentLongitude ?? data.location?.lng,
 });
 
 const sensorRows = (result) => {
@@ -138,7 +144,6 @@ export const WorkerProvider = ({ children }) => {
         acc[workerId] = {
           helmet: false,
           safeSuit: false,
-          safeShoes: false,
           ...(acc[workerId] || {}),
           [key]: item.wearStatus === 'WORN',
         };
@@ -148,7 +153,6 @@ export const WorkerProvider = ({ children }) => {
         normalizeWorker(worker, null, equipmentByWorker[worker.id] || {
           helmet: false,
           safeSuit: false,
-          safeShoes: false,
         })
       );
       const allSensorRows = sensorResults.flatMap(({ rows }) => rows);
