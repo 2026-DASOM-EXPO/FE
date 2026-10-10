@@ -106,6 +106,26 @@ describe('realtime sensor state synchronization', () => {
     expect(updated[0].sensorData.sosPressed).toBe(true);
   });
 
+  test('treats buttonValue 0 as SOS pressed and 1 as safe', () => {
+    const workers = [{ id: 1, sensorData: {} }];
+
+    const idle = mergeWorkerSensor(workers, {
+      worker: { id: 1 },
+      sensorType: 'SOS',
+      sosPressed: true,
+      rawPayload: '{"buttonValue":1}',
+    });
+    expect(idle[0].sensorData.sosPressed).toBe(false);
+
+    const pressed = mergeWorkerSensor(idle, {
+      worker: { id: 1 },
+      sensorType: 'SOS',
+      sosPressed: false,
+      rawPayload: '{"buttonValue":0}',
+    });
+    expect(pressed[0].sensorData.sosPressed).toBe(true);
+  });
+
   test('applies the latest SOS log after sorting history rows by time', () => {
     const history = [
       { workerId: 1, sensorType: 'WEAR_STATUS', sosPressed: false, measuredAt: '2026-10-03T08:31:54' },

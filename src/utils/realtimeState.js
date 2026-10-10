@@ -28,11 +28,26 @@ const detectedWearStatus = (sensor = {}) => {
   return ['WORN', 'NOT_WORN', 'UNKNOWN'].includes(wearStatus) ? wearStatus : null;
 };
 
+// SOS 버튼은 눌렀을 때 buttonValue 0, 평상시 1을 보냅니다.
+// 원본 페이로드에 buttonValue가 있으면 그 값을 기준으로 하고, 없을 때만 sosPressed를 그대로 씁니다.
+const sosButtonPressed = (sensor = {}) => {
+  let buttonValue = sensor.buttonValue;
+  if (buttonValue == null && sensor.rawPayload) {
+    try {
+      buttonValue = JSON.parse(sensor.rawPayload)?.buttonValue;
+    } catch {
+      buttonValue = undefined;
+    }
+  }
+  if (buttonValue != null && buttonValue !== '') return Number(buttonValue) === 0;
+  return sensor.sosPressed;
+};
+
 // 백엔드는 센서 종류별 로그를 따로 보내며, SOS가 아닌 로그도 sosPressed: false를 기본값으로 담습니다.
 // SOS 로그의 값만 반영해야 착용/생체 로그가 SOS 상태를 덮어쓰지 않습니다.
 const sensorSosPressed = (sensor = {}, previous) => {
-  if (sensor.sensorType) return sensor.sensorType === 'SOS' ? sensor.sosPressed ?? previous : previous;
-  return sensor.sosPressed ?? previous;
+  if (sensor.sensorType) return sensor.sensorType === 'SOS' ? sosButtonPressed(sensor) ?? previous : previous;
+  return sosButtonPressed(sensor) ?? previous;
 };
 
 const sensorTime = (sensor = {}) => {
