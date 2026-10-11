@@ -172,6 +172,7 @@ export const createAlertIfNeeded = (workerStatus, worker) => {
       message: workerStatus.issues.join(' / '),
       workerId: worker.id,
       workerName: worker.name,
+      workerPhone: worker.phoneNumber || worker.phone,
       location: worker.location,
     };
   }
@@ -184,6 +185,7 @@ export const createAlertIfNeeded = (workerStatus, worker) => {
       message: workerStatus.issues.join(' / '),
       workerId: worker.id,
       workerName: worker.name,
+      workerPhone: worker.phoneNumber || worker.phone,
     };
   }
 

@@ -5,6 +5,13 @@ import EmergencyAlertModal from './EmergencyAlertModal';
 import RiskAlertToast from './RiskAlertToast';
 
 const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+const emptyDroneVideo = {
+  streamUrl: '',
+  protocol: 'HLS',
+  width: 1280,
+  height: 720,
+  frameRate: 30,
+};
 
 const EmergencyDispatchController = () => {
   const { alerts, markAsRead } = useAlert();
@@ -68,13 +75,17 @@ const EmergencyDispatchController = () => {
 
   const confirmDispatch = async () => {
     const riskEventId = activeAlert?.riskEvent?.id;
+    // 스트림 연결 여부와 관계없이 확인 즉시 전체 화면 영상 영역을 엽니다.
+    setVideo(emptyDroneVideo);
+    setLoading(true);
+    setError('');
+
     if (!riskEventId) {
       setError('연결된 위험 이벤트를 찾을 수 없습니다.');
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
-    setError('');
     const confirmed = await riskEventAPI.updateStatus(riskEventId, 'PROCESSING');
     if (!confirmed.success) {
       setError(confirmed.error || '드론 출동 승인에 실패했습니다.');
@@ -84,7 +95,9 @@ const EmergencyDispatchController = () => {
 
     const videoResult = await findVideo(activeAlert.workerId, riskEventId);
     if (!videoResult.success) {
+      // 연결 실패 시에도 검은색 영상 대기 화면은 유지합니다.
       setError(videoResult.error);
+      await markAsRead(activeAlert.id);
       setLoading(false);
       return;
     }

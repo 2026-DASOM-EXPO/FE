@@ -9,11 +9,17 @@
   backdrop-filter: blur(8px);
 }
 
+.emergency-modal-backdrop--video {
+  padding: 0;
+  background: #020617;
+  backdrop-filter: none;
+}
+
 .emergency-modal {
   width: min(760px, 100%);
   max-height: calc(100vh - 48px);
   overflow: auto;
-  padding: 28px;
+  padding: 36px;
   border: 1px solid rgba(248, 113, 113, 0.55);
   border-radius: 24px;
   background: #fff;
@@ -21,12 +27,63 @@
 }
 
 .emergency-modal--video {
+  position: relative;
   display: flex;
   flex-direction: column;
-  width: min(1600px, 100%);
-  height: calc(100vh - 48px);
-  max-height: calc(100vh - 48px);
+  width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #020617;
   overflow: hidden;
+}
+
+.emergency-modal__video-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0 0 3px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.78);
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-size: 30px;
+  font-weight: 300;
+  line-height: 46px;
+  cursor: pointer;
+}
+
+.emergency-modal__video-close:hover {
+  background: rgba(220, 38, 38, 0.92);
+}
+
+.emergency-modal--video .emergency-modal__header h2,
+.emergency-modal--video .emergency-modal__message {
+  color: #f8fafc;
+}
+
+.emergency-modal--video .emergency-modal__header span,
+.emergency-modal--video .emergency-video__meta span {
+  color: #cbd5e1;
+}
+
+.emergency-modal--video .emergency-modal__close {
+  background: rgba(148, 163, 184, 0.2);
+  color: #f8fafc;
+}
+
+.emergency-modal--video > .emergency-modal__signal,
+.emergency-modal--video > .emergency-modal__header,
+.emergency-modal--video > .emergency-modal__message {
+  display: none;
 }
 
 .emergency-modal__signal {
@@ -60,6 +117,13 @@
   margin: 6px 0 0;
   color: #111827;
   font-size: clamp(24px, 4vw, 34px);
+}
+
+.emergency-modal__phone {
+  margin: 10px 0 0;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .emergency-modal__close {
@@ -123,6 +187,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+  margin-top: 30px;
 }
 
 .emergency-modal__actions .emergency-modal__confirm {
@@ -153,7 +218,15 @@
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  margin-top: 22px;
+  margin: 0;
+}
+
+.emergency-video__viewport {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  background: #000;
 }
 
 .emergency-video__meta {
