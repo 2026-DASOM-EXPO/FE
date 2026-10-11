@@ -1,15 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import Hls from 'hls.js';
 import './EmergencyAlertModal.css';
 
 export const DroneVideoPlayer = ({ video }) => {
   const videoRef = useRef(null);
-  const [playerError, setPlayerError] = useState('');
 
   useEffect(() => {
     const element = videoRef.current;
     if (!element || !video?.streamUrl) return undefined;
-    setPlayerError('');
 
     if (video.protocol === 'HLS' && Hls.isSupported()) {
       let recoveryAttempts = 0;
@@ -26,40 +24,27 @@ export const DroneVideoPlayer = ({ video }) => {
       hls.attachMedia(element);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         recoveryAttempts = 0;
-        setPlayerError('');
-        element.play().catch(() => {
-          setPlayerError('브라우저 재생 버튼을 눌러 현장 영상을 시작하세요.');
-        });
+        element.play().catch(() => undefined);
       });
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (!data.fatal) return;
 
         recoveryAttempts += 1;
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR && recoveryAttempts <= 3) {
-          setPlayerError('영상 연결을 복구하고 있습니다...');
           hls.startLoad();
           return;
         }
         if (data.type === Hls.ErrorTypes.MEDIA_ERROR && recoveryAttempts <= 3) {
-          setPlayerError('영상 디코더를 복구하고 있습니다...');
           hls.recoverMediaError();
-          return;
         }
-        setPlayerError('드론 영상 게이트웨이에 연결하지 못했습니다. 스트림 상태를 확인하세요.');
       });
       return () => hls.destroy();
     }
 
     element.src = video.streamUrl;
-    const handleLoadedData = () => setPlayerError('');
-    const handleError = () => setPlayerError('드론 영상을 재생하지 못했습니다.');
-    element.addEventListener('loadeddata', handleLoadedData);
-    element.addEventListener('error', handleError);
     element.play().catch(() => undefined);
     return () => {
       element.pause();
-      element.removeEventListener('loadeddata', handleLoadedData);
-      element.removeEventListener('error', handleError);
       element.removeAttribute('src');
       element.load();
     };
@@ -67,12 +52,9 @@ export const DroneVideoPlayer = ({ video }) => {
 
   return (
     <div className="emergency-video">
-      <div className="emergency-video__meta">
-        <strong>드론 영상</strong>
-        <span>{video.width}×{video.height} · {video.frameRate}fps · {video.protocol}</span>
+      <div className="emergency-video__viewport">
+        <video ref={videoRef} controls autoPlay muted playsInline aria-label="드론 영상" />
       </div>
-      <video ref={videoRef} controls autoPlay muted playsInline aria-label="드론 영상" />
-      {playerError && <p className="emergency-modal__error">{playerError}</p>}
     </div>
   );
 };
@@ -90,26 +72,19 @@ const EmergencyAlertModal = ({
   const isSos = alert.type === 'sos_request';
 
   return (
-    <div className="emergency-modal-backdrop" role="presentation">
+    <div className={`emergency-modal-backdrop ${video ? 'emergency-modal-backdrop--video' : ''}`} role="presentation">
       <section className={`emergency-modal ${video ? 'emergency-modal--video' : ''}`} role="alertdialog" aria-modal="true" aria-labelledby="sos-modal-title">
-        <div className="emergency-modal__signal">{isSos ? 'SOS' : '위험'}</div>
+        <div className="emergency-modal__signal">위험</div>
         <div className="emergency-modal__header">
           <div>
-            <span>위험 경고</span>
             <h2 id="sos-modal-title">{alert.workerName || '작업자'} {isSos ? 'SOS 요청' : '위험 감지'}</h2>
+            <p className="emergency-modal__phone">연락처: {alert.workerPhone || '정보 없음'}</p>
           </div>
           {video && <button type="button" className="emergency-modal__close" onClick={onClose} aria-label="경고창 닫기">×</button>}
         </div>
 
-        <p className="emergency-modal__message">{alert.message || (isSos ? '작업자가 SOS 버튼을 눌렀습니다.' : '작업자에게서 위험 센서값이 감지되었습니다.')}</p>
-
         {!video ? (
           <>
-            <div className="emergency-modal__facts">
-              <div><span>드론</span><strong>관리자 승인 대기</strong></div>
-              <div><span>119 신고</span><strong>외부 신고 안 함</strong></div>
-              <div><span>영상</span><strong>확인 후 전체 화면</strong></div>
-            </div>
             {error && <p className="emergency-modal__error">{error}</p>}
             <div className="emergency-modal__actions">
               <button type="button" className="emergency-modal__cancel" onClick={onClose} disabled={loading}>취소</button>
@@ -119,7 +94,17 @@ const EmergencyAlertModal = ({
             </div>
           </>
         ) : (
-          <DroneVideoPlayer video={video} />
+          <>
+            <button
+              type="button"
+              className="emergency-modal__video-close"
+              onClick={onClose}
+              aria-label="드론 영상 닫기"
+            >
+              ×
+            </button>
+            <DroneVideoPlayer video={video} />
+          </>
         )}
       </section>
     </div>

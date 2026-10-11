@@ -10,6 +10,7 @@ const normalizeAlert = (alert) => ({
   timestamp: new Date(alert.createdAt || Date.now()),
   workerId: alert.worker?.id,
   workerName: alert.worker?.name,
+  workerPhone: alert.worker?.phoneNumber || alert.worker?.phone || alert.phoneNumber || alert.workerPhone,
   type: alert.riskEvent?.riskType?.toLowerCase() || 'system',
 });
 
