@@ -3,17 +3,14 @@ import { EQUIPMENT_LABELS, WORKER_STATUS, WORKER_STATUS_META } from '../../utils
 import './WorkerDetailModal.css';
 
 /**
- * WorkerDetailModal 컴포넌트
- * 대시보드의 작업자 카드를 눌렀을 때 작업자의 센서/장비/위치 정보를 한 번에 확인합니다.
+ * WorkerDetailPanel 컴포넌트
+ * 작업자의 센서/장비/연락처 정보를 담는 본문 패널입니다. 모달과 대시보드 메인 화면이 함께 사용합니다.
  *
- * @param {object|null} worker - 상세로 표시할 작업자 객체입니다. null이면 렌더링하지 않습니다.
- * @param {Function} onClose - 닫기 버튼 또는 배경 클릭 시 실행할 콜백입니다.
+ * @param {object} worker - 상세로 표시할 작업자 객체입니다.
+ * @param {Function} [onClose] - 닫기 버튼 콜백입니다. 없으면 닫기 버튼을 표시하지 않습니다.
+ * @param {boolean} [page] - true면 모달 크기 제한 없이 화면 전체를 채우는 형태로 표시합니다.
  */
-const WorkerDetailModal = ({ worker, onClose, onEdit, onDelete, showGps = true }) => {
-  // 선택된 작업자가 없을 때는 모달 DOM 자체를 만들지 않아 포커스/스크린리더 혼선을 줄입니다.
-  if (!worker) {
-    return null;
-  }
+export const WorkerDetailPanel = ({ worker, onClose, onEdit, onDelete, showGps = true, page = false }) => {
 
   const statusMeta =
     WORKER_STATUS_META[worker.status] || WORKER_STATUS_META[WORKER_STATUS.UNKNOWN];
@@ -24,16 +21,7 @@ const WorkerDetailModal = ({ worker, onClose, onEdit, onDelete, showGps = true }
     .map(([, label]) => label);
 
   return (
-    <div className="worker-modal" role="dialog" aria-modal="true">
-      {/* 배경 영역을 버튼으로 만들어 키보드/보조기기 사용자도 닫기 동작을 예측할 수 있게 합니다. */}
-      <button
-        className="worker-modal-backdrop"
-        type="button"
-        aria-label="작업자 상세 닫기"
-        onClick={onClose}
-      />
-
-      <section className="worker-modal-panel">
+      <section className={`worker-modal-panel ${page ? 'worker-modal-panel--page' : ''}`}>
         <header className="worker-modal-header">
           <div>
             <span className={`detail-status ${statusMeta.tone}`}>
@@ -45,7 +33,7 @@ const WorkerDetailModal = ({ worker, onClose, onEdit, onDelete, showGps = true }
           <div className="worker-modal-actions">
             {onEdit && <button type="button" onClick={onEdit}>수정</button>}
             {onDelete && <button type="button" className="worker-delete-button" onClick={onDelete}>삭제</button>}
-            <button className="modal-close-button" type="button" onClick={onClose}>닫기</button>
+            {onClose && <button className="modal-close-button" type="button" onClick={onClose}>닫기</button>}
           </div>
         </header>
 
@@ -117,6 +105,33 @@ const WorkerDetailModal = ({ worker, onClose, onEdit, onDelete, showGps = true }
           </div>
         </div>
       </section>
+  );
+};
+
+/**
+ * WorkerDetailModal 컴포넌트
+ * 작업자 카드를 눌렀을 때 작업자의 센서/장비/위치 정보를 모달로 확인합니다.
+ *
+ * @param {object|null} worker - 상세로 표시할 작업자 객체입니다. null이면 렌더링하지 않습니다.
+ * @param {Function} onClose - 닫기 버튼 또는 배경 클릭 시 실행할 콜백입니다.
+ */
+const WorkerDetailModal = ({ worker, onClose, ...panelProps }) => {
+  // 선택된 작업자가 없을 때는 모달 DOM 자체를 만들지 않아 포커스/스크린리더 혼선을 줄입니다.
+  if (!worker) {
+    return null;
+  }
+
+  return (
+    <div className="worker-modal" role="dialog" aria-modal="true">
+      {/* 배경 영역을 버튼으로 만들어 키보드/보조기기 사용자도 닫기 동작을 예측할 수 있게 합니다. */}
+      <button
+        className="worker-modal-backdrop"
+        type="button"
+        aria-label="작업자 상세 닫기"
+        onClick={onClose}
+      />
+
+      <WorkerDetailPanel worker={worker} onClose={onClose} {...panelProps} />
     </div>
   );
 };

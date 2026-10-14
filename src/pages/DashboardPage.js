@@ -4,7 +4,7 @@ import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useAlert } from '../context/AlertContext';
 import { useWorker } from '../context/WorkerContext';
-import WorkerDetailModal from '../components/worker/WorkerDetailModal';
+import { WorkerDetailPanel } from '../components/worker/WorkerDetailModal';
 import { droneAPI } from '../services/api';
 import { useRealtime } from '../context/RealtimeContext';
 import { MOCK_GPS, WORKER_STATUS } from '../utils/constants';
@@ -76,12 +76,19 @@ const MapAutoFit = ({ workers, drones }) => {
   return null;
 };
 
-const DashboardPage = () => {
+/**
+ * DashboardPage 컴포넌트
+ * 사이드바에서 고른 화면(작업자 상태/위치/드론 영상/알림) 하나를 본문 전체에 표시합니다.
+ *
+ * @param {string} view - 표시할 화면 id입니다. (workers | map | stream | alerts)
+ * @param {Function} onViewChange - 알림 확인처럼 화면 전환이 필요한 경우 호출하는 콜백입니다.
+ */
+const DashboardPage = ({ view = 'workers', onViewChange }) => {
   const { workers } = useWorker();
   const { alerts, unreadCount } = useAlert();
   const { subscribe } = useRealtime();
   const [drones, setDrones] = useState([]);
-  const [selectedWorker, setSelectedWorker] = useState(null);
+  const [selectedWorkerId, setSelectedWorkerId] = useState(null);
   const [jetsonIp, setJetsonIp] = useState('172.20.10.2:8889');
   const [streamPath, setStreamPath] = useState('yolo_out/');
   const [streamLoading, setStreamLoading] = useState(false);
@@ -121,11 +128,18 @@ const DashboardPage = () => {
     const focusWorker = (event) => {
       const workerId = event.detail?.workerId;
       const worker = workers.find((item) => String(item.id) === String(workerId));
-      if (worker) setSelectedWorker(worker);
+      if (!worker) return;
+      setSelectedWorkerId(worker.id);
+      onViewChange?.('workers');
     };
     window.addEventListener('worksafe:focus-worker', focusWorker);
     return () => window.removeEventListener('worksafe:focus-worker', focusWorker);
-  }, [workers]);
+  }, [onViewChange, workers]);
+
+  // 선택한 작업자가 없거나 삭제된 경우 첫 번째 작업자를 기본으로 보여줍니다.
+  const selectedWorker = workers.find((worker) => String(worker.id) === String(selectedWorkerId))
+    || workers[0]
+    || null;
 
   const locatedWorkers = useMemo(() => workers.filter((worker) =>
     worker.location?.lat != null && worker.location?.lng != null
@@ -191,7 +205,8 @@ const DashboardPage = () => {
   }, [mediaMtxStreamUrl]);
 
   return (
-    <div className="dashboard-page dashboard-page--unified">
+    <div className={`dashboard-page dashboard-page--${view}`}>
+      {view === 'alerts' && (
       <section className="recent-alerts-section">
         <div className="section-heading">
           <h2>최근 알림</h2>
@@ -237,32 +252,39 @@ const DashboardPage = () => {
           {filteredAlerts.length === 0 && <div className="empty-state">해당 알림이 없습니다.</div>}
         </div>
       </section>
+      )}
 
-      <section className="dashboard-worker-panel">
-        <div className="section-heading">
-          <h2>작업자 상태</h2>
-          <span>{workers.length}명</span>
-        </div>
-        <div className="dashboard-worker-list">
-          {workers.map((worker) => (
-            <button
-              key={worker.id}
-              type="button"
-              className={`dashboard-worker-row dashboard-worker-row--${worker.status}`}
-              onClick={() => setSelectedWorker(worker)}
-            >
-              <div>
-                <strong>{worker.name}</strong>
-                <span>{statusLabel[worker.status] || worker.status}</span>
-              </div>
-              <div>
-                <span>{worker.sensorData?.heartRate ?? '-'} bpm</span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
+      {view === 'workers' && (
+        <>
+          {/* 작업자가 여러 명일 때만 상단에서 전환할 수 있는 선택 목록을 보여줍니다. */}
+          {workers.length > 1 && (
+            <div className="dashboard-worker-list" aria-label="작업자 선택">
+              {workers.map((worker) => (
+                <button
+                  key={worker.id}
+                  type="button"
+                  className={`dashboard-worker-row dashboard-worker-row--${worker.status} ${worker.id === selectedWorker?.id ? 'is-selected' : ''}`}
+                  aria-pressed={worker.id === selectedWorker?.id}
+                  onClick={() => setSelectedWorkerId(worker.id)}
+                >
+                  <div>
+                    <strong>{worker.name}</strong>
+                    <span>{statusLabel[worker.status] || worker.status}</span>
+                  </div>
+                  <div>
+                    <span>{worker.sensorData?.heartRate ?? '-'} bpm</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+          {selectedWorker
+            ? <WorkerDetailPanel worker={selectedWorker} showGps={false} page />
+            : <div className="empty-state">등록된 작업자가 없습니다.</div>}
+        </>
+      )}
 
+      {view === 'map' && (
       <section className="dashboard-map-panel">
         <div className="section-heading">
           <div>
@@ -351,7 +373,9 @@ const DashboardPage = () => {
           </aside>
         </div>
       </section>
+      )}
 
+      {view === 'stream' && (
       <section className="dashboard-stream-panel">
         <div className="section-heading">
           <div>
@@ -386,12 +410,7 @@ const DashboardPage = () => {
           )}
         </div>
       </section>
-
-      <WorkerDetailModal
-        worker={selectedWorker ? workers.find((worker) => worker.id === selectedWorker.id) || selectedWorker : null}
-        showGps={false}
-        onClose={() => setSelectedWorker(null)}
-      />
+      )}
     </div>
   );
 };

@@ -19,8 +19,11 @@ import DashboardPage from './pages/DashboardPage';
 function AuthenticatedApp() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
-  // 현재는 대시보드만 제공하므로 메뉴 선택은 모바일 드로어만 닫습니다.
-  const handleMenuChange = () => {
+  const [activeMenu, setActiveMenu] = useState('workers');
+
+  // 메뉴를 고르면 해당 화면으로 전환하고 모바일 드로어를 닫습니다.
+  const handleMenuChange = (menuId) => {
+    setActiveMenu(menuId);
     setIsMobileNavOpen(false);
   };
 
@@ -45,12 +48,12 @@ function AuthenticatedApp() {
               }
               navigation={
                 <Navigation
-                  activeMenu="dashboard"
+                  activeMenu={activeMenu}
                   onMenuChange={handleMenuChange}
                 />
               }
             >
-              <div className="page-content"><DashboardPage /></div>
+              <div className="page-content"><DashboardPage view={activeMenu} onViewChange={setActiveMenu} /></div>
             </MainLayout>
             <EmergencyDispatchController />
           </SensorProvider>
