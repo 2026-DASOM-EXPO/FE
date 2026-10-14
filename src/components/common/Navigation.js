@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAlert } from '../../context/AlertContext';
 import './Navigation.css';
 
 /**
@@ -10,8 +11,12 @@ import './Navigation.css';
  */
 const Navigation = ({ activeMenu, onMenuChange }) => {
   // 메뉴 정의를 배열로 유지해 렌더링과 배지 표시 규칙을 한 흐름에서 처리합니다.
+  const { unreadCount } = useAlert();
   const menus = [
-    { id: 'dashboard', label: '대시보드', icon: '⌂' },
+    { id: 'workers', label: '작업자 상태', icon: '⌂' },
+    { id: 'map', label: '작업자/드론 위치', icon: '⌖' },
+    { id: 'stream', label: '실시간 드론 영상', icon: '▶' },
+    { id: 'alerts', label: '최근 알림', icon: '!', badge: unreadCount },
   ];
 
   return (

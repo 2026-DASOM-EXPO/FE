@@ -29,6 +29,54 @@
   box-shadow: var(--shadow-lg);
 }
 
+/* 대시보드 메인 화면에서는 모달 크기 제한을 풀고 본문 영역 전체를 채웁니다. */
+.worker-modal-panel--page {
+  z-index: auto;
+  width: 100%;
+  max-height: none;
+  overflow: visible;
+  box-shadow: var(--shadow-sm);
+}
+
+.worker-modal-panel--page .worker-modal-header h2 {
+  font-size: 2rem;
+}
+
+.worker-modal-panel--page .detail-metrics div {
+  padding: var(--spacing-lg);
+}
+
+.worker-modal-panel--page .detail-metrics span {
+  font-size: 0.95rem;
+}
+
+.worker-modal-panel--page .detail-metrics strong {
+  font-size: 1.8rem;
+}
+
+.worker-modal-panel--page .detail-section h3 {
+  font-size: 1.15rem;
+}
+
+.worker-modal-panel--page .equipment-tile {
+  gap: 10px;
+  padding: var(--spacing-xl) var(--spacing-md);
+}
+
+.worker-modal-panel--page .equipment-tile-icon {
+  width: 64px;
+  height: 64px;
+  font-size: 2rem;
+}
+
+.worker-modal-panel--page .equipment-tile-label {
+  font-size: 1.2rem;
+}
+
+.worker-modal-panel--page .equipment-tile-status {
+  font-size: 1.5rem;
+}
+
 .worker-modal-header {
   display: flex;
   justify-content: space-between;
