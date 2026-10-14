@@ -9,8 +9,17 @@ import './WorkerDetailModal.css';
  * @param {object} worker - 상세로 표시할 작업자 객체입니다.
  * @param {Function} [onClose] - 닫기 버튼 콜백입니다. 없으면 닫기 버튼을 표시하지 않습니다.
  * @param {boolean} [page] - true면 모달 크기 제한 없이 화면 전체를 채우는 형태로 표시합니다.
+ * @param {Function} [onToggleEquipment] - (장비 key, 바꿀 착용 여부)를 받는 콜백입니다. 있으면 장비 타일을 눌러 착용 상태를 바꿀 수 있습니다.
  */
-export const WorkerDetailPanel = ({ worker, onClose, onEdit, onDelete, showGps = true, page = false }) => {
+export const WorkerDetailPanel = ({
+  worker,
+  onClose,
+  onEdit,
+  onDelete,
+  onToggleEquipment,
+  showGps = true,
+  page = false,
+}) => {
 
   const statusMeta =
     WORKER_STATUS_META[worker.status] || WORKER_STATUS_META[WORKER_STATUS.UNKNOWN];
@@ -73,11 +82,16 @@ export const WorkerDetailPanel = ({ worker, onClose, onEdit, onDelete, showGps =
           <div className="equipment-checklist">
             {Object.entries(EQUIPMENT_LABELS).map(([key, label]) => {
               const equipped = Boolean(equipmentStatus[key]);
+              const Tile = onToggleEquipment ? 'button' : 'div';
+              const tileProps = onToggleEquipment
+                ? { type: 'button', onClick: () => onToggleEquipment(key, !equipped) }
+                : {};
               return (
-                <div
+                <Tile
                   key={key}
                   className={`equipment-tile ${equipped ? 'equipped' : 'missing'}`}
                   aria-label={`${label} ${equipped ? '착용' : '미착용'}`}
+                  {...tileProps}
                 >
                   <span className="equipment-tile-icon" aria-hidden="true">
                     {equipped ? '✓' : '✕'}
@@ -86,7 +100,7 @@ export const WorkerDetailPanel = ({ worker, onClose, onEdit, onDelete, showGps =
                   <strong className="equipment-tile-status">
                     {equipped ? '착용' : '미착용'}
                   </strong>
-                </div>
+                </Tile>
               );
             })}
           </div>

@@ -53,7 +53,7 @@ function AuthenticatedApp() {
                 />
               }
             >
-              <div className="page-content"><DashboardPage view={activeMenu} onViewChange={setActiveMenu} /></div>
+              <div className="page-content"><DashboardPage view={activeMenu} /></div>
             </MainLayout>
             <EmergencyDispatchController />
           </SensorProvider>

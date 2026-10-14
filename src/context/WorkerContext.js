@@ -61,6 +61,8 @@ export const WorkerProvider = ({ children }) => {
   const { status: realtimeStatus, subscribe } = useRealtime();
   const [workers, setWorkers] = useState([]);
   const [selectedWorker, setSelectedWorker] = useState(null);
+  // 화면에서 직접 바꾼 착용 상태입니다. 1초마다 다시 병합되는 센서 로그에 덮이지 않도록 따로 보관합니다.
+  const [wearOverrides, setWearOverrides] = useState({});
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -237,6 +239,23 @@ export const WorkerProvider = ({ children }) => {
   const updateWorkerStatus = useCallback((workerId, status) => {
     setWorkers((prev) => prev.map((worker) => worker.id === workerId ? { ...worker, status } : worker));
   }, []);
+  const setEquipmentWear = useCallback((workerId, key, equipped) => {
+    setWearOverrides((prev) => ({
+      ...prev,
+      [workerId]: { ...(prev[workerId] || {}), [key]: equipped },
+    }));
+  }, []);
+  const displayedWorkers = useMemo(() => workers.map((worker) => {
+    const overrides = wearOverrides[worker.id];
+    if (!overrides) return worker;
+    return {
+      ...worker,
+      sensorData: {
+        ...(worker.sensorData || {}),
+        equipmentStatus: { ...(worker.sensorData?.equipmentStatus || {}), ...overrides },
+      },
+    };
+  }), [wearOverrides, workers]);
   const updateSensorData = useCallback((workerId, sensorData) => {
     setWorkers((prev) => prev.map((worker) => worker.id === workerId
       ? normalizeWorker(worker, sensorData)
@@ -244,9 +263,9 @@ export const WorkerProvider = ({ children }) => {
   }, []);
 
   return <WorkerContext.Provider value={{
-    workers, selectedWorker, loading, refreshing, error, lastFetchedAt,
+    workers: displayedWorkers, selectedWorker, loading, refreshing, error, lastFetchedAt,
     fetchWorkers, getWorkerDetail, addWorker, updateWorker, deleteWorker,
-    updateWorkerStatus, updateSensorData,
+    updateWorkerStatus, updateSensorData, setEquipmentWear,
   }}>{children}</WorkerContext.Provider>;
 };
 

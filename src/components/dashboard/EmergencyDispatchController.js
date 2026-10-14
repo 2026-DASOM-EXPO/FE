@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useAlert } from '../../context/AlertContext';
 import { riskEventAPI } from '../../services/api';
 import EmergencyAlertModal from './EmergencyAlertModal';
-import RiskAlertToast from './RiskAlertToast';
 
 const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 const emptyDroneVideo = {
@@ -14,30 +13,28 @@ const emptyDroneVideo = {
 };
 
 const EmergencyDispatchController = () => {
-  const { alerts, markAsRead } = useAlert();
+  const { alerts, loading: alertsLoading, markAsRead } = useAlert();
   const [dismissedIds, setDismissedIds] = useState(() => new Set());
-  const [dismissedWarningIds, setDismissedWarningIds] = useState(() => new Set());
+  // 앱을 켤 때 이미 쌓여 있던 미확인 알림은 팝업으로 띄우지 않고, 이후 새로 들어온 알림만 띄웁니다.
+  const [initialAlertIds, setInitialAlertIds] = useState(null);
   const [activeAlertId, setActiveAlertId] = useState(null);
   const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    if (initialAlertIds || alertsLoading) return;
+    setInitialAlertIds(new Set(alerts.map((alert) => alert.id)));
+  }, [alerts, alertsLoading, initialAlertIds]);
+
   const latestDanger = useMemo(
-    () => alerts.find((alert) =>
+    () => (initialAlertIds && alerts.find((alert) =>
       (alert.type === 'sos_request' || ['danger', 'emergency'].includes(alert.severity))
       && !alert.read
+      && !initialAlertIds.has(alert.id)
       && !dismissedIds.has(alert.id)
-    ) || null,
-    [alerts, dismissedIds]
-  );
-
-  const latestWarning = useMemo(
-    () => alerts.find((alert) =>
-      alert.severity === 'warning'
-      && !alert.read
-      && !dismissedWarningIds.has(alert.id)
-    ) || null,
-    [alerts, dismissedWarningIds]
+    )) || null,
+    [alerts, dismissedIds, initialAlertIds]
   );
 
   const activeAlert = useMemo(
@@ -116,33 +113,15 @@ const EmergencyDispatchController = () => {
     setError('');
   };
 
-  const acknowledgeWarning = async () => {
-    if (!latestWarning?.id) return;
-    const visibleWarningIds = alerts
-      .filter((alert) => alert.severity === 'warning' && !alert.read)
-      .map((alert) => alert.id);
-    window.dispatchEvent(new CustomEvent('worksafe:focus-worker', {
-      detail: { workerId: latestWarning.workerId },
-    }));
-    setDismissedWarningIds((current) => new Set([
-      ...current,
-      ...visibleWarningIds,
-    ]));
-    await markAsRead(latestWarning.id);
-  };
-
   return (
-    <>
-      <RiskAlertToast alert={latestWarning} onConfirm={acknowledgeWarning} />
-      <EmergencyAlertModal
-        alert={activeAlert}
-        video={video}
-        loading={loading}
-        error={error}
-        onConfirm={confirmDispatch}
-        onClose={close}
-      />
-    </>
+    <EmergencyAlertModal
+      alert={activeAlert}
+      video={video}
+      loading={loading}
+      error={error}
+      onConfirm={confirmDispatch}
+      onClose={close}
+    />
   );
 };
 

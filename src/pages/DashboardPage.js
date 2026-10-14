@@ -81,10 +81,9 @@ const MapAutoFit = ({ workers, drones }) => {
  * 사이드바에서 고른 화면(작업자 상태/위치/드론 영상/알림) 하나를 본문 전체에 표시합니다.
  *
  * @param {string} view - 표시할 화면 id입니다. (workers | map | stream | alerts)
- * @param {Function} onViewChange - 알림 확인처럼 화면 전환이 필요한 경우 호출하는 콜백입니다.
  */
-const DashboardPage = ({ view = 'workers', onViewChange }) => {
-  const { workers } = useWorker();
+const DashboardPage = ({ view = 'workers' }) => {
+  const { workers, setEquipmentWear } = useWorker();
   const { alerts, unreadCount } = useAlert();
   const { subscribe } = useRealtime();
   const [drones, setDrones] = useState([]);
@@ -123,18 +122,6 @@ const DashboardPage = ({ view = 'workers', onViewChange }) => {
       unsubscribeDroneDeleted();
     };
   }, [subscribe]);
-
-  useEffect(() => {
-    const focusWorker = (event) => {
-      const workerId = event.detail?.workerId;
-      const worker = workers.find((item) => String(item.id) === String(workerId));
-      if (!worker) return;
-      setSelectedWorkerId(worker.id);
-      onViewChange?.('workers');
-    };
-    window.addEventListener('worksafe:focus-worker', focusWorker);
-    return () => window.removeEventListener('worksafe:focus-worker', focusWorker);
-  }, [onViewChange, workers]);
 
   // 선택한 작업자가 없거나 삭제된 경우 첫 번째 작업자를 기본으로 보여줍니다.
   const selectedWorker = workers.find((worker) => String(worker.id) === String(selectedWorkerId))
@@ -279,7 +266,14 @@ const DashboardPage = ({ view = 'workers', onViewChange }) => {
             </div>
           )}
           {selectedWorker
-            ? <WorkerDetailPanel worker={selectedWorker} showGps={false} page />
+            ? (
+              <WorkerDetailPanel
+                worker={selectedWorker}
+                showGps={false}
+                page
+                onToggleEquipment={(key, equipped) => setEquipmentWear(selectedWorker.id, key, equipped)}
+              />
+            )
             : <div className="empty-state">등록된 작업자가 없습니다.</div>}
         </>
       )}
