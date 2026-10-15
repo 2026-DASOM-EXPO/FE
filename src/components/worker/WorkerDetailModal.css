@@ -232,14 +232,39 @@
 
 /* 대시보드에서는 타일을 눌러 착용 상태를 직접 바꿀 수 있습니다. */
 button.equipment-tile {
+  position: relative;
   width: 100%;
   color: inherit;
   font: inherit;
-  cursor: pointer;
+  /* 타일과 그 아래 클릭 영역 위에서는 마우스 포인터를 숨깁니다. */
+  cursor: none;
+  transition: none;
+  /* 여러 번 눌러도 글자가 파랗게 선택되거나 터치 하이라이트가 생기지 않게 합니다. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-button.equipment-tile:hover {
-  box-shadow: var(--shadow-md);
+/* 누른 뒤 남는 파란 포커스 테두리를 없앱니다. */
+button.equipment-tile:focus,
+button.equipment-tile:focus-visible {
+  outline: none;
+}
+
+/* 타일 아래 여백을 눌러도 전환되도록 보이지 않는 클릭 영역을 아래로 늘립니다. */
+button.equipment-tile::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: -2px;
+  left: -2px;
+  height: 120px;
+}
+
+/* 전역 버튼의 hover 움직임 효과를 타일에서는 끕니다. */
+button.equipment-tile:hover,
+button.equipment-tile:active {
+  transform: none;
 }
 
 .equipment-tile-icon {
